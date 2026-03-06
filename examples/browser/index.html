@@ -1,0 +1,179 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>FreshBlu Browser Demo</title>
+  <style>
+    body { font-family: monospace; background: #0d0d0d; color: #00ff88; padding: 2rem; }
+    h1 { color: #00ccff; }
+    button { background: #1a1a1a; color: #00ff88; border: 1px solid #00ff88; padding: 8px 16px; cursor: pointer; margin: 4px; }
+    button:hover { background: #00ff88; color: #0d0d0d; }
+    #log { background: #111; border: 1px solid #333; padding: 1rem; height: 300px; overflow-y: auto; }
+    .log-entry { margin: 2px 0; }
+    .log-entry.event { color: #ffcc00; }
+    .log-entry.error { color: #ff4444; }
+    .log-entry.info { color: #aaaaaa; }
+    input { background: #1a1a1a; color: #00ff88; border: 1px solid #555; padding: 6px; width: 300px; }
+  </style>
+</head>
+<body>
+  <h1>FreshBlu Browser Demo</h1>
+  <p>Connect to a local FreshBlu server and test messaging.</p>
+
+  <div>
+    <label>Server: <input id="server" value="localhost" /></label>
+    <label>Port: <input id="port" value="3000" style="width:80px" /></label>
+  </div>
+  <br>
+  <div>
+    <button onclick="checkStatus()">Check Status</button>
+    <button onclick="registerDevice()">Register Device</button>
+    <button onclick="connectWs()">Connect WS</button>
+    <button onclick="broadcastMessage()">Broadcast Message</button>
+    <button onclick="clearLog()">Clear Log</button>
+  </div>
+
+  <br>
+  <div id="log"></div>
+
+  <script type="module">
+    // In production, import from npm: import { FreshBlu, FreshBluHttp } from 'freshblu'
+    // Here we inline a minimal version for demo purposes
+
+    class FreshBluHttp {
+      constructor({ hostname, port, secure = false, uuid, token } = {}) {
+        const scheme = secure ? 'https' : 'http';
+        this.baseUrl = `${scheme}://${hostname}:${port}`;
+        this.uuid = uuid;
+        this.token = token;
+      }
+
+      get authHeader() {
+        if (!this.uuid || !this.token) return null;
+        return 'Basic ' + btoa(`${this.uuid}:${this.token}`);
+      }
+
+      headers() {
+        const h = { 'Content-Type': 'application/json' };
+        if (this.authHeader) h['Authorization'] = this.authHeader;
+        return h;
+      }
+
+      async request(method, path, body) {
+        const resp = await fetch(`${this.baseUrl}${path}`, {
+          method,
+          headers: this.headers(),
+          body: body !== undefined ? JSON.stringify(body) : undefined,
+        });
+        const data = await resp.json();
+        if (!resp.ok) throw new Error(data.error || `HTTP ${resp.status}`);
+        return data;
+      }
+
+      register(props = {}) { return this.request('POST', '/devices', props); }
+      whoami() { return this.request('GET', '/whoami'); }
+      getDevice(uuid) { return this.request('GET', `/devices/${uuid}`); }
+      message(msg) { return this.request('POST', '/messages', msg); }
+      status() { return fetch(`${this.baseUrl}/status`).then(r => r.json()); }
+    }
+
+    let client = null;
+    let ws = null;
+
+    function getConfig() {
+      return {
+        hostname: document.getElementById('server').value,
+        port: parseInt(document.getElementById('port').value, 10),
+      };
+    }
+
+    function log(msg, type = '') {
+      const el = document.getElementById('log');
+      const div = document.createElement('div');
+      div.className = `log-entry ${type}`;
+      div.textContent = `[${new Date().toLocaleTimeString()}] ${msg}`;
+      el.appendChild(div);
+      el.scrollTop = el.scrollHeight;
+    }
+
+    window.clearLog = () => document.getElementById('log').innerHTML = '';
+
+    window.checkStatus = async () => {
+      try {
+        const c = new FreshBluHttp(getConfig());
+        const status = await c.status();
+        log(`Status: ${JSON.stringify(status)}`, 'event');
+      } catch (e) {
+        log(`Error: ${e.message}`, 'error');
+      }
+    };
+
+    window.registerDevice = async () => {
+      try {
+        const c = new FreshBluHttp(getConfig());
+        const device = await c.register({ type: 'browser-client', name: 'demo' });
+        log(`Registered: uuid=${device.uuid}`, 'event');
+        log(`Token (save this!): ${device.token}`, 'info');
+        
+        // Store globally for other operations
+        window._device = device;
+        client = new FreshBluHttp({
+          ...getConfig(),
+          uuid: device.uuid,
+          token: device.token,
+        });
+        log('Client configured with new device credentials', 'info');
+      } catch (e) {
+        log(`Error: ${e.message}`, 'error');
+      }
+    };
+
+    window.connectWs = () => {
+      if (!window._device) {
+        log('Register a device first!', 'error');
+        return;
+      }
+
+      const { hostname, port } = getConfig();
+      const wsUrl = `ws://${hostname}:${port}/ws`;
+      ws = new WebSocket(wsUrl);
+
+      ws.onopen = () => {
+        log('WebSocket connected', 'info');
+        ws.send(JSON.stringify({
+          event: 'identity',
+          uuid: window._device.uuid,
+          token: window._device.token,
+        }));
+      };
+
+      ws.onmessage = (evt) => {
+        try {
+          const data = JSON.parse(evt.data);
+          log(`WS Event [${data.event}]: ${JSON.stringify(data)}`, 'event');
+        } catch (e) {}
+      };
+
+      ws.onclose = () => log('WebSocket disconnected', 'info');
+      ws.onerror = () => log('WebSocket error', 'error');
+    };
+
+    window.broadcastMessage = async () => {
+      if (!client || !window._device) {
+        log('Register a device first!', 'error');
+        return;
+      }
+      try {
+        await client.message({
+          devices: ['*'],
+          topic: 'demo',
+          payload: { value: Math.random(), timestamp: Date.now() },
+        });
+        log('Broadcast sent!', 'event');
+      } catch (e) {
+        log(`Error: ${e.message}`, 'error');
+      }
+    };
+  </script>
+</body>
+</html>

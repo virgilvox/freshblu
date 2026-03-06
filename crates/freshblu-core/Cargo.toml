@@ -1,0 +1,18 @@
+[package]
+name = "freshblu-core"
+version.workspace = true
+edition.workspace = true
+
+[dependencies]
+serde = { workspace = true }
+serde_json = { workspace = true }
+uuid = { workspace = true }
+bcrypt = { workspace = true }
+chrono = { workspace = true }
+thiserror = { workspace = true }
+anyhow = { workspace = true }
+rand = { workspace = true }
+sha2 = { workspace = true }
+base64 = { workspace = true }
+hmac = { workspace = true }
+tracing = { workspace = true }

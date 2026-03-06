@@ -1,0 +1,72 @@
+[workspace]
+members = [
+    "crates/freshblu-core",
+    "crates/freshblu-store",
+    "crates/freshblu-server",
+    "crates/freshblu-cli",
+
+]
+resolver = "2"
+
+[workspace.package]
+version = "0.1.0"
+edition = "2021"
+authors = ["FreshBlu Contributors"]
+license = "MIT"
+repository = "https://github.com/youorg/freshblu"
+
+[workspace.dependencies]
+# Async
+tokio = { version = "1", features = ["full"] }
+tokio-stream = "0.1"
+futures = "0.3"
+
+# Web
+axum = { version = "0.7", features = ["ws", "macros"] }
+axum-extra = { version = "0.9", features = ["typed-header"] }
+tower = { version = "0.4", features = ["full"] }
+tower-http = { version = "0.5", features = ["cors", "trace"] }
+hyper = { version = "1", features = ["full"] }
+
+# MQTT
+rumqttd = { version = "0.19", default-features = false }
+rumqttc = "0.24"
+
+# Storage
+sqlx = { version = "0.7", features = ["sqlite", "postgres", "runtime-tokio-rustls", "uuid", "json", "migrate"] }
+
+# Serialization
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
+
+# Auth / Crypto
+uuid = { version = "1", features = ["v4", "serde"] }
+bcrypt = "0.15"
+jsonwebtoken = "9"
+rand = "0.8"
+sha2 = "0.10"
+base64 = "0.21"
+hmac = "0.12"
+
+# Error handling
+anyhow = "1"
+thiserror = "1"
+
+# Logging
+tracing = "0.1"
+tracing-subscriber = { version = "0.3", features = ["env-filter", "json"] }
+
+# Config
+config = "0.14"
+dotenvy = "0.15"
+
+# Misc
+chrono = { version = "0.4", features = ["serde"] }
+dashmap = "5"
+tokio-tungstenite = { version = "0.21", features = ["native-tls"] }
+
+[profile.release]
+opt-level = 3
+lto = true
+codegen-units = 1
+strip = true

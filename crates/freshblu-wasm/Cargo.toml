@@ -1,0 +1,34 @@
+[package]
+name = "freshblu-wasm"
+version.workspace = true
+edition.workspace = true
+description = "FreshBlu WASM client library - works in browser and Node.js"
+
+[lib]
+crate-type = ["cdylib", "rlib"]
+
+[dependencies]
+wasm-bindgen = "0.2"
+wasm-bindgen-futures = "0.4"
+js-sys = "0.3"
+web-sys = { version = "0.3", features = [
+    "WebSocket",
+    "MessageEvent",
+    "ErrorEvent",
+    "CloseEvent",
+    "console",
+    "Window",
+] }
+serde = { workspace = true }
+serde_json = { workspace = true }
+uuid = { version = "1", features = ["v4", "js"] }
+anyhow = { workspace = true }
+gloo-net = { version = "0.5", features = ["http", "websocket"] }
+
+[dev-dependencies]
+wasm-bindgen-test = "0.3"
+
+[profile.release]
+opt-level = "s"    # optimize for size in WASM
+console_error_panic_hook = { version = "0.1", optional = true }
+serde-wasm-bindgen = "0.6"

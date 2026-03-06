@@ -1,0 +1,43 @@
+[package]
+name = "freshblu-server"
+version.workspace = true
+edition.workspace = true
+
+[dependencies]
+freshblu-core = { path = "../freshblu-core" }
+freshblu-store = { path = "../freshblu-store" }
+
+tokio = { workspace = true }
+tokio-stream = { workspace = true }
+futures = { workspace = true }
+axum = { workspace = true }
+axum-extra = { workspace = true }
+tower = { workspace = true }
+tower-http = { workspace = true }
+hyper = { workspace = true }
+serde = { workspace = true }
+serde_json = { workspace = true }
+uuid = { workspace = true }
+chrono = { workspace = true }
+anyhow = { workspace = true }
+thiserror = { workspace = true }
+tracing = { workspace = true }
+tracing-subscriber = { workspace = true }
+dashmap = { workspace = true }
+base64 = { workspace = true }
+config = { workspace = true }
+dotenvy = { workspace = true }
+tokio-tungstenite = { workspace = true }
+
+# MQTT broker
+rumqttd = { version = "0.19", default-features = false, features = ["default"] }
+
+[lib]
+name = "freshblu_server"
+path = "src/lib.rs"
+
+[[bin]]
+name = "freshblu-server"
+path = "src/main.rs"
+async-trait = "0.1"
+serde_wasm_bindgen = { version = "0.6", optional = true }

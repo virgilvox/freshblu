@@ -1,0 +1,63 @@
+version: "3.9"
+
+services:
+  freshblu:
+    image: freshblu:latest
+    build:
+      context: ..
+      dockerfile: docker/Dockerfile
+    ports:
+      - "3000:3000"   # HTTP + WebSocket
+      - "1883:1883"   # MQTT
+    environment:
+      FRESHBLU_HTTP_PORT: "3000"
+      FRESHBLU_MQTT_PORT: "1883"
+      DATABASE_URL: "sqlite:/data/freshblu.db"
+      FRESHBLU_PEPPER: "${FRESHBLU_PEPPER:-change-me-in-production}"
+      FRESHBLU_OPEN_REGISTRATION: "${FRESHBLU_OPEN_REGISTRATION:-true}"
+      RUST_LOG: "${RUST_LOG:-info}"
+    volumes:
+      - freshblu_data:/data
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:3000/status"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+
+  # Optional: pgweb UI for database inspection (dev only)
+  # pgweb:
+  #   image: sosedoff/pgweb
+  #   ports:
+  #     - "8081:8081"
+
+volumes:
+  freshblu_data:
+
+# ---- Production variant with PostgreSQL ----
+# Uncomment to use PostgreSQL instead of SQLite:
+#
+# services:
+#   freshblu:
+#     environment:
+#       DATABASE_URL: "postgresql://freshblu:freshblu@postgres/freshblu"
+#     depends_on:
+#       postgres:
+#         condition: service_healthy
+#
+#   postgres:
+#     image: postgres:16-alpine
+#     environment:
+#       POSTGRES_DB: freshblu
+#       POSTGRES_USER: freshblu
+#       POSTGRES_PASSWORD: freshblu
+#     volumes:
+#       - pg_data:/var/lib/postgresql/data
+#     healthcheck:
+#       test: ["CMD", "pg_isready", "-U", "freshblu"]
+#       interval: 5s
+#       retries: 10
+#
+# volumes:
+#   freshblu_data:
+#   pg_data:
