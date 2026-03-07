@@ -2,13 +2,20 @@
 name = "freshblu-cli"
 version.workspace = true
 edition.workspace = true
+authors.workspace = true
+license.workspace = true
+repository.workspace = true
+description = "Command-line client for the FreshBlu IoT messaging platform"
+readme = "README.md"
+keywords = ["iot", "meshblu", "cli"]
+categories = ["command-line-utilities"]
 
 [[bin]]
 name = "freshblu"
 path = "src/main.rs"
 
 [dependencies]
-freshblu-core = { path = "../freshblu-core" }
+freshblu-core = { path = "../freshblu-core", version = "0.1.0" }
 tokio = { workspace = true }
 serde = { workspace = true }
 serde_json = { workspace = true }

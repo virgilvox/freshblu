@@ -16,6 +16,12 @@ pub struct ServerConfig {
     pub max_message_size: usize,
     /// Log level
     pub log_level: String,
+    /// NATS URL (if set, use NatsBus; otherwise LocalBus)
+    pub nats_url: Option<String>,
+    /// Redis URL (if set, enable cache layer and presence)
+    pub redis_url: Option<String>,
+    /// Pod ID for NATS delivery routing (defaults to hostname)
+    pub pod_id: String,
 }
 
 impl Default for ServerConfig {
@@ -28,6 +34,9 @@ impl Default for ServerConfig {
             open_registration: true,
             max_message_size: 1_048_576, // 1MB
             log_level: "info".to_string(),
+            nats_url: None,
+            redis_url: None,
+            pod_id: gethostname(),
         }
     }
 }
@@ -57,6 +66,15 @@ impl ServerConfig {
                 .unwrap_or(1_048_576),
             log_level: std::env::var("RUST_LOG")
                 .unwrap_or_else(|_| "info".to_string()),
+            nats_url: std::env::var("NATS_URL").ok(),
+            redis_url: std::env::var("REDIS_URL").ok(),
+            pod_id: std::env::var("POD_ID").unwrap_or_else(|_| gethostname()),
         }
     }
+}
+
+fn gethostname() -> String {
+    std::env::var("HOSTNAME").unwrap_or_else(|_| {
+        uuid::Uuid::new_v4().to_string()[..8].to_string()
+    })
 }

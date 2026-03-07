@@ -1,34 +1,49 @@
 use axum::{
-    extract::{Path, Query, State},
+    extract::{Path, State},
     Json,
 };
 use freshblu_core::{
-    device::{DeviceView, RegisterParams, UpdateParams},
+    device::{DeviceView, RegisterParams},
     error::FreshBluError,
     message::DeviceEvent,
     permissions::PermissionChecker,
     subscription::SubscriptionType,
 };
-use serde::Deserialize;
-use serde_json::{json, Map, Value};
+use serde_json::{json, Value};
 use std::collections::HashMap;
 use uuid::Uuid;
 
 use super::AuthenticatedDevice;
-use crate::AppState;
+use crate::{ApiError, AppState};
 
-type ApiResult<T> = Result<Json<T>, FreshBluError>;
+type ApiResult<T> = Result<Json<T>, ApiError>;
 
 // POST /devices
 pub async fn register(
     State(state): State<AppState>,
+    headers: axum::http::HeaderMap,
     Json(params): Json<RegisterParams>,
 ) -> ApiResult<Value> {
+    // Enforce open_registration flag
+    if !state.config.open_registration {
+        // If registration is closed, require valid auth credentials
+        let has_auth = headers
+            .get("authorization")
+            .and_then(|v| v.to_str().ok())
+            .and_then(freshblu_core::auth::parse_basic_auth)
+            .is_some();
+        let has_legacy_auth = headers.get("skynet_auth_uuid").is_some()
+            && headers.get("skynet_auth_token").is_some();
+        if !has_auth && !has_legacy_auth {
+            return Err(FreshBluError::Forbidden.into());
+        }
+    }
+
     let (device, plaintext_token) = state.store.register(params).await?;
 
     // Return device + plaintext token (only time token is visible)
     let mut resp = serde_json::to_value(&device).map_err(|e| {
-        FreshBluError::Internal(e.to_string())
+        ApiError::from(FreshBluError::Internal(e.to_string()))
     })?;
     resp["token"] = Value::String(plaintext_token);
 
@@ -41,11 +56,21 @@ pub async fn get_device(
     AuthenticatedDevice(actor, as_uuid): AuthenticatedDevice,
     Path(uuid): Path<Uuid>,
 ) -> ApiResult<DeviceView> {
+    // Verify x-meshblu-as permission
+    if let Some(ref as_u) = as_uuid {
+        let as_device = state.store.get_device(as_u).await?
+            .ok_or(FreshBluError::NotFound).map_err(ApiError::from)?;
+        let checker = PermissionChecker::new(&as_device.meshblu.whitelists, &actor.uuid, as_u);
+        if !checker.can_discover_as() {
+            return Err(FreshBluError::Forbidden.into());
+        }
+    }
+
     let device = state
         .store
         .get_device(&uuid)
         .await?
-        .ok_or(FreshBluError::NotFound)?;
+        .ok_or(FreshBluError::NotFound).map_err(ApiError::from)?;
 
     let effective_actor = as_uuid.unwrap_or(actor.uuid);
 
@@ -57,8 +82,7 @@ pub async fn get_device(
     );
 
     if !checker.can_discover_view() {
-        // Meshblu convention: can't distinguish "not found" from "no permission"
-        return Err(FreshBluError::NotFound);
+        return Err(FreshBluError::NotFound.into());
     }
 
     Ok(Json(device.to_view()))
@@ -71,11 +95,21 @@ pub async fn update_device(
     Path(uuid): Path<Uuid>,
     Json(body): Json<HashMap<String, Value>>,
 ) -> ApiResult<DeviceView> {
+    // Verify x-meshblu-as permission
+    if let Some(ref as_u) = as_uuid {
+        let as_device = state.store.get_device(as_u).await?
+            .ok_or(FreshBluError::NotFound).map_err(ApiError::from)?;
+        let checker = PermissionChecker::new(&as_device.meshblu.whitelists, &actor.uuid, as_u);
+        if !checker.can_configure_as() {
+            return Err(FreshBluError::Forbidden.into());
+        }
+    }
+
     let device = state
         .store
         .get_device(&uuid)
         .await?
-        .ok_or(FreshBluError::NotFound)?;
+        .ok_or(FreshBluError::NotFound).map_err(ApiError::from)?;
 
     let effective_actor = as_uuid.unwrap_or(actor.uuid);
 
@@ -86,7 +120,7 @@ pub async fn update_device(
     );
 
     if !checker.can_configure_update() {
-        return Err(FreshBluError::Forbidden);
+        return Err(FreshBluError::Forbidden.into());
     }
 
     let updated = state.store.update_device(&uuid, body).await?;
@@ -101,11 +135,11 @@ pub async fn update_device(
         .unwrap_or_default();
 
     for sub_uuid in subscribers {
-        state.hub.deliver(&sub_uuid, config_event.clone());
+        let _ = state.bus.publish(&sub_uuid, config_event.clone()).await;
     }
 
     // Also deliver to device itself if connected
-    state.hub.deliver(&uuid, config_event);
+    let _ = state.bus.publish(&uuid, config_event).await;
 
     Ok(Json(view))
 }
@@ -116,11 +150,21 @@ pub async fn unregister(
     AuthenticatedDevice(actor, as_uuid): AuthenticatedDevice,
     Path(uuid): Path<Uuid>,
 ) -> ApiResult<Value> {
+    // Verify x-meshblu-as permission
+    if let Some(ref as_u) = as_uuid {
+        let as_device = state.store.get_device(as_u).await?
+            .ok_or(FreshBluError::NotFound).map_err(ApiError::from)?;
+        let checker = PermissionChecker::new(&as_device.meshblu.whitelists, &actor.uuid, as_u);
+        if !checker.can_configure_as() {
+            return Err(FreshBluError::Forbidden.into());
+        }
+    }
+
     let device = state
         .store
         .get_device(&uuid)
         .await?
-        .ok_or(FreshBluError::NotFound)?;
+        .ok_or(FreshBluError::NotFound).map_err(ApiError::from)?;
 
     let effective_actor = as_uuid.unwrap_or(actor.uuid);
     let checker = PermissionChecker::new(
@@ -130,7 +174,7 @@ pub async fn unregister(
     );
 
     if !checker.can_configure_update() {
-        return Err(FreshBluError::Forbidden);
+        return Err(FreshBluError::Forbidden.into());
     }
 
     // Notify subscribers
@@ -141,11 +185,11 @@ pub async fn unregister(
         .await
         .unwrap_or_default();
     for sub_uuid in subs {
-        state.hub.deliver(&sub_uuid, unreg_event.clone());
+        let _ = state.bus.publish(&sub_uuid, unreg_event.clone()).await;
     }
 
     state.store.unregister(&uuid).await?;
-    state.hub.disconnect(&uuid);
+    state.bus.disconnect(&uuid);
 
     Ok(Json(json!({ "uuid": uuid })))
 }
@@ -156,6 +200,16 @@ pub async fn search(
     AuthenticatedDevice(actor, as_uuid): AuthenticatedDevice,
     Json(query): Json<HashMap<String, Value>>,
 ) -> ApiResult<Vec<DeviceView>> {
+    // Verify x-meshblu-as permission
+    if let Some(ref as_u) = as_uuid {
+        let as_device = state.store.get_device(as_u).await?
+            .ok_or(FreshBluError::NotFound).map_err(ApiError::from)?;
+        let checker = PermissionChecker::new(&as_device.meshblu.whitelists, &actor.uuid, as_u);
+        if !checker.can_discover_as() {
+            return Err(FreshBluError::Forbidden.into());
+        }
+    }
+
     let effective_actor = as_uuid.unwrap_or(actor.uuid);
     let all = state.store.search_devices(&query).await?;
 
@@ -184,7 +238,7 @@ pub async fn whoami(
         .store
         .get_device(&actor.uuid)
         .await?
-        .ok_or(FreshBluError::NotFound)?;
+        .ok_or(FreshBluError::NotFound).map_err(ApiError::from)?;
     Ok(Json(device.to_view()))
 }
 
@@ -199,7 +253,7 @@ pub async fn my_devices(
         .store
         .get_device(&actor.uuid)
         .await?
-        .ok_or(FreshBluError::NotFound)?;
+        .ok_or(FreshBluError::NotFound).map_err(ApiError::from)?;
     Ok(Json(vec![device.to_view()]))
 }
 
@@ -214,20 +268,20 @@ pub mod auth {
         let uuid_str = body
             .get("uuid")
             .and_then(|v| v.as_str())
-            .ok_or(FreshBluError::Validation("uuid required".into()))?;
+            .ok_or_else(|| ApiError::from(FreshBluError::Validation("uuid required".into())))?;
         let token = body
             .get("token")
             .and_then(|v| v.as_str())
-            .ok_or(FreshBluError::Validation("token required".into()))?;
+            .ok_or_else(|| ApiError::from(FreshBluError::Validation("token required".into())))?;
 
         let uuid = Uuid::parse_str(uuid_str)
-            .map_err(|_| FreshBluError::Validation("invalid uuid".into()))?;
+            .map_err(|_| ApiError::from(FreshBluError::Validation("invalid uuid".into())))?;
 
         let device = state
             .store
             .authenticate(&uuid, token)
             .await?
-            .ok_or(FreshBluError::Unauthorized)?;
+            .ok_or_else(|| ApiError::from(FreshBluError::Unauthorized))?;
 
         Ok(Json(json!({ "uuid": device.uuid })))
     }

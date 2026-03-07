@@ -8,10 +8,6 @@ use serde::{Deserialize, Serialize};
 use serde_json::Value;
 use std::collections::HashMap;
 
-// When the `wee_alloc` feature is enabled, use `wee_alloc` as the global allocator.
-#[global_allocator]
-
-
 #[wasm_bindgen]
 extern "C" {
     #[wasm_bindgen(js_namespace = console)]
@@ -306,5 +302,6 @@ fn base64_encode(input: &[u8]) -> String {
 
 #[wasm_bindgen(start)]
 pub fn main() {
+    #[cfg(feature = "console_error_panic_hook")]
     console_error_panic_hook::set_once();
 }

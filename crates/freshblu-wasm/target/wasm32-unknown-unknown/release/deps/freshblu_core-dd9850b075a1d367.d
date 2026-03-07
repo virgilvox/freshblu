@@ -1,0 +1,13 @@
+/Users/obsidian/Ouijit/worktrees/freshblu/T-1/crates/freshblu-wasm/target/wasm32-unknown-unknown/release/deps/freshblu_core-dd9850b075a1d367.d: /Users/obsidian/Ouijit/worktrees/freshblu/T-1/crates/freshblu-core/src/lib.rs /Users/obsidian/Ouijit/worktrees/freshblu/T-1/crates/freshblu-core/src/device.rs /Users/obsidian/Ouijit/worktrees/freshblu/T-1/crates/freshblu-core/src/error.rs /Users/obsidian/Ouijit/worktrees/freshblu/T-1/crates/freshblu-core/src/message.rs /Users/obsidian/Ouijit/worktrees/freshblu/T-1/crates/freshblu-core/src/permissions.rs /Users/obsidian/Ouijit/worktrees/freshblu/T-1/crates/freshblu-core/src/subscription.rs /Users/obsidian/Ouijit/worktrees/freshblu/T-1/crates/freshblu-core/src/token.rs
+
+/Users/obsidian/Ouijit/worktrees/freshblu/T-1/crates/freshblu-wasm/target/wasm32-unknown-unknown/release/deps/libfreshblu_core-dd9850b075a1d367.rlib: /Users/obsidian/Ouijit/worktrees/freshblu/T-1/crates/freshblu-core/src/lib.rs /Users/obsidian/Ouijit/worktrees/freshblu/T-1/crates/freshblu-core/src/device.rs /Users/obsidian/Ouijit/worktrees/freshblu/T-1/crates/freshblu-core/src/error.rs /Users/obsidian/Ouijit/worktrees/freshblu/T-1/crates/freshblu-core/src/message.rs /Users/obsidian/Ouijit/worktrees/freshblu/T-1/crates/freshblu-core/src/permissions.rs /Users/obsidian/Ouijit/worktrees/freshblu/T-1/crates/freshblu-core/src/subscription.rs /Users/obsidian/Ouijit/worktrees/freshblu/T-1/crates/freshblu-core/src/token.rs
+
+/Users/obsidian/Ouijit/worktrees/freshblu/T-1/crates/freshblu-wasm/target/wasm32-unknown-unknown/release/deps/libfreshblu_core-dd9850b075a1d367.rmeta: /Users/obsidian/Ouijit/worktrees/freshblu/T-1/crates/freshblu-core/src/lib.rs /Users/obsidian/Ouijit/worktrees/freshblu/T-1/crates/freshblu-core/src/device.rs /Users/obsidian/Ouijit/worktrees/freshblu/T-1/crates/freshblu-core/src/error.rs /Users/obsidian/Ouijit/worktrees/freshblu/T-1/crates/freshblu-core/src/message.rs /Users/obsidian/Ouijit/worktrees/freshblu/T-1/crates/freshblu-core/src/permissions.rs /Users/obsidian/Ouijit/worktrees/freshblu/T-1/crates/freshblu-core/src/subscription.rs /Users/obsidian/Ouijit/worktrees/freshblu/T-1/crates/freshblu-core/src/token.rs
+
+/Users/obsidian/Ouijit/worktrees/freshblu/T-1/crates/freshblu-core/src/lib.rs:
+/Users/obsidian/Ouijit/worktrees/freshblu/T-1/crates/freshblu-core/src/device.rs:
+/Users/obsidian/Ouijit/worktrees/freshblu/T-1/crates/freshblu-core/src/error.rs:
+/Users/obsidian/Ouijit/worktrees/freshblu/T-1/crates/freshblu-core/src/message.rs:
+/Users/obsidian/Ouijit/worktrees/freshblu/T-1/crates/freshblu-core/src/permissions.rs:
+/Users/obsidian/Ouijit/worktrees/freshblu/T-1/crates/freshblu-core/src/subscription.rs:
+/Users/obsidian/Ouijit/worktrees/freshblu/T-1/crates/freshblu-core/src/token.rs:

@@ -2,17 +2,37 @@
 name = "freshblu-core"
 version.workspace = true
 edition.workspace = true
+authors.workspace = true
+license.workspace = true
+repository.workspace = true
+description = "Core types and permission model for the FreshBlu IoT messaging platform"
+readme = "README.md"
+keywords = ["iot", "meshblu", "messaging", "permissions"]
+categories = ["data-structures", "network-programming"]
+
+[features]
+default = ["auth"]
+auth = ["dep:bcrypt", "dep:rand", "dep:sha2", "dep:base64", "dep:hmac"]
 
 [dependencies]
 serde = { workspace = true }
 serde_json = { workspace = true }
 uuid = { workspace = true }
-bcrypt = { workspace = true }
 chrono = { workspace = true }
 thiserror = { workspace = true }
 anyhow = { workspace = true }
-rand = { workspace = true }
-sha2 = { workspace = true }
-base64 = { workspace = true }
-hmac = { workspace = true }
 tracing = { workspace = true }
+
+# Auth-only deps (not available in WASM)
+bcrypt = { workspace = true, optional = true }
+rand = { workspace = true, optional = true }
+sha2 = { workspace = true, optional = true }
+base64 = { workspace = true, optional = true }
+hmac = { workspace = true, optional = true }
+
+[dev-dependencies]
+criterion = { workspace = true }
+
+[[bench]]
+name = "core_bench"
+harness = false

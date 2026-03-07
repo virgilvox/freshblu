@@ -6,15 +6,14 @@ pub mod subscriptions;
 pub mod tokens;
 
 use axum::{
-    extract::{FromRequestParts, State},
-    http::{request::Parts, HeaderMap, StatusCode},
+    extract::FromRequestParts,
+    http::request::Parts,
     response::{IntoResponse, Response},
-    RequestPartsExt,
 };
 use freshblu_core::{auth::parse_basic_auth, device::Device, error::FreshBluError};
 use uuid::Uuid;
 
-use crate::AppState;
+use crate::{ApiError, AppState};
 
 /// Extractor: authenticated device from HTTP Basic Auth header (uuid:token)
 pub struct AuthenticatedDevice(pub Device, pub Option<Uuid>);
@@ -33,7 +32,7 @@ impl FromRequestParts<AppState> for AuthenticatedDevice {
         let creds = headers
             .get("authorization")
             .and_then(|v| v.to_str().ok())
-            .and_then(|v| parse_basic_auth(v));
+            .and_then(parse_basic_auth);
 
         // Fallback: skynet_auth header (legacy)
         let creds = creds.or_else(|| {
@@ -49,19 +48,19 @@ impl FromRequestParts<AppState> for AuthenticatedDevice {
         });
 
         let (uuid_str, token) = creds.ok_or_else(|| {
-            FreshBluError::Unauthorized.into_response()
+            ApiError::from(FreshBluError::Unauthorized).into_response()
         })?;
 
         let uuid = Uuid::parse_str(&uuid_str).map_err(|_| {
-            FreshBluError::Unauthorized.into_response()
+            ApiError::from(FreshBluError::Unauthorized).into_response()
         })?;
 
         let device = state
             .store
             .authenticate(&uuid, &token)
             .await
-            .map_err(|e| e.into_response())?
-            .ok_or_else(|| FreshBluError::Unauthorized.into_response())?;
+            .map_err(|e| ApiError::from(e).into_response())?
+            .ok_or_else(|| ApiError::from(FreshBluError::Unauthorized).into_response())?;
 
         // Check x-meshblu-as header for acting as another device
         let as_uuid = headers

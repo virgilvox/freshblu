@@ -1,39 +1,61 @@
+pub mod bus;
 pub mod config;
 pub mod handlers;
 pub mod hub;
+pub mod local_bus;
+pub mod metrics;
 pub mod mqtt;
+pub mod nats_bus;
+pub mod presence;
 pub mod ws;
 
-use std::sync::Arc;
-
 use axum::{
-    extract::State,
-    http::{HeaderMap, StatusCode},
-    middleware,
+    http::StatusCode,
     response::{IntoResponse, Response},
     routing::{delete, get, post, put},
     Json, Router,
 };
 use freshblu_core::error::FreshBluError;
 use freshblu_store::DynStore;
-use serde_json::{json, Value};
+use serde_json::json;
 use tower_http::{cors::CorsLayer, trace::TraceLayer};
 
+pub use bus::DynBus;
 pub use config::ServerConfig;
 pub use hub::MessageHub;
+
+/// Newtype wrapper to implement IntoResponse for FreshBluError (orphan rule)
+pub struct ApiError(pub FreshBluError);
+
+impl From<FreshBluError> for ApiError {
+    fn from(e: FreshBluError) -> Self {
+        ApiError(e)
+    }
+}
+
+impl IntoResponse for ApiError {
+    fn into_response(self) -> Response {
+        let status = StatusCode::from_u16(self.0.http_status())
+            .unwrap_or(StatusCode::INTERNAL_SERVER_ERROR);
+        let body = json!({ "error": self.0.to_string() });
+        (status, Json(body)).into_response()
+    }
+}
 
 /// Shared application state
 #[derive(Clone)]
 pub struct AppState {
     pub store: DynStore,
-    pub hub: Arc<MessageHub>,
+    pub bus: DynBus,
     pub config: ServerConfig,
 }
 
 pub fn build_router(state: AppState) -> Router {
-    Router::new()
+    let app = Router::new()
         // Status
         .route("/status", get(handlers::status::status))
+        // Authentication
+        .route("/authenticate", post(handlers::auth::authenticate))
         // Device registration / auth
         .route("/devices", post(handlers::devices::register))
         .route("/devices/search", post(handlers::devices::search))
@@ -80,19 +102,13 @@ pub fn build_router(state: AppState) -> Router {
         )
         // WebSocket
         .route("/ws", get(ws::ws_handler))
-        .route("/socket.io", get(ws::ws_handler)) // Socket.io compat endpoint
+        .route("/socket.io", get(ws::ws_handler))
+        // Metrics
+        .route("/metrics", get(metrics::metrics_handler))
         // Middleware
         .layer(CorsLayer::permissive())
         .layer(TraceLayer::new_for_http())
-        .with_state(state)
-}
+        .with_state(state);
 
-/// Convert FreshBluError into HTTP responses
-impl IntoResponse for FreshBluError {
-    fn into_response(self) -> Response {
-        let status = StatusCode::from_u16(self.http_status())
-            .unwrap_or(StatusCode::INTERNAL_SERVER_ERROR);
-        let body = json!({ "error": self.to_string() });
-        (status, Json(body)).into_response()
-    }
+    app
 }

@@ -1,19 +1,21 @@
 [workspace]
 members = [
     "crates/freshblu-core",
+    "crates/freshblu-proto",
     "crates/freshblu-store",
     "crates/freshblu-server",
+    "crates/freshblu-router",
     "crates/freshblu-cli",
-
 ]
+exclude = ["crates/freshblu-wasm"]
 resolver = "2"
 
 [workspace.package]
 version = "0.1.0"
 edition = "2021"
 authors = ["FreshBlu Contributors"]
-license = "MIT"
-repository = "https://github.com/youorg/freshblu"
+license = "MIT OR Apache-2.0"
+repository = "https://github.com/virgilvox/freshblu"
 
 [workspace.dependencies]
 # Async
@@ -33,7 +35,7 @@ rumqttd = { version = "0.19", default-features = false }
 rumqttc = "0.24"
 
 # Storage
-sqlx = { version = "0.7", features = ["sqlite", "postgres", "runtime-tokio-rustls", "uuid", "json", "migrate"] }
+sqlx = { version = "0.7", features = ["sqlite", "postgres", "runtime-tokio-rustls", "uuid", "json", "chrono", "migrate"] }
 
 # Serialization
 serde = { version = "1", features = ["derive"] }
@@ -60,10 +62,23 @@ tracing-subscriber = { version = "0.3", features = ["env-filter", "json"] }
 config = "0.14"
 dotenvy = "0.15"
 
+# NATS
+async-nats = "0.38"
+
+# Redis
+redis = { version = "0.27", features = ["tokio-comp", "connection-manager"] }
+
+# Metrics
+prometheus = "0.13"
+axum-prometheus = "0.7"
+lazy_static = "1"
+
 # Misc
 chrono = { version = "0.4", features = ["serde"] }
 dashmap = "5"
 tokio-tungstenite = { version = "0.21", features = ["native-tls"] }
+async-trait = "0.1"
+criterion = { version = "0.5", features = ["async_tokio"] }
 
 [profile.release]
 opt-level = 3

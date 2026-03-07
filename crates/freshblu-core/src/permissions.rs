@@ -6,14 +6,13 @@
 ///
 /// The special UUID "*" in any whitelist means "anyone is allowed".
 /// An empty whitelist means "nobody except self is allowed".
-
 use serde::{Deserialize, Serialize};
 use uuid::Uuid;
 
 use crate::device::WhitelistEntry;
 
 /// The full permission whitelist structure for a device (v2.0)
-#[derive(Debug, Clone, Serialize, Deserialize, Default)]
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize, Default)]
 pub struct Whitelists {
     #[serde(default)]
     pub discover: DiscoverWhitelist,
@@ -26,7 +25,7 @@ pub struct Whitelists {
 }
 
 /// Controls who can discover / view this device
-#[derive(Debug, Clone, Serialize, Deserialize, Default)]
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize, Default)]
 pub struct DiscoverWhitelist {
     /// Who can GET this device's properties
     #[serde(default)]
@@ -37,7 +36,7 @@ pub struct DiscoverWhitelist {
 }
 
 /// Controls who can modify this device's config
-#[derive(Debug, Clone, Serialize, Deserialize, Default)]
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize, Default)]
 pub struct ConfigureWhitelist {
     /// Who can update this device
     #[serde(default)]
@@ -54,7 +53,7 @@ pub struct ConfigureWhitelist {
 }
 
 /// Controls who can send/receive direct messages
-#[derive(Debug, Clone, Serialize, Deserialize, Default)]
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize, Default)]
 pub struct MessageWhitelist {
     /// Who can send messages TO this device
     #[serde(default)]
@@ -71,7 +70,7 @@ pub struct MessageWhitelist {
 }
 
 /// Controls who can subscribe to broadcast events
-#[derive(Debug, Clone, Serialize, Deserialize, Default)]
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize, Default)]
 pub struct BroadcastWhitelist {
     /// Who can subscribe to broadcasts SENT by this device
     #[serde(default)]
@@ -228,5 +227,98 @@ impl<'a> PermissionChecker<'a> {
     /// Can actor act-as this device for broadcasts?
     pub fn can_broadcast_as(&self) -> bool {
         self.is_self() || check_whitelist(&self.device.broadcast.r#as, self.actor)
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::device::WhitelistEntry;
+
+    #[test]
+    fn test_check_whitelist_wildcard() {
+        let list = vec![WhitelistEntry::wildcard()];
+        let any_uuid = Uuid::new_v4();
+        assert!(check_whitelist(&list, &any_uuid));
+    }
+
+    #[test]
+    fn test_check_whitelist_specific_uuid() {
+        let target = Uuid::new_v4();
+        let other = Uuid::new_v4();
+        let list = vec![WhitelistEntry::for_uuid(&target)];
+        assert!(check_whitelist(&list, &target));
+        assert!(!check_whitelist(&list, &other));
+    }
+
+    #[test]
+    fn test_check_whitelist_empty() {
+        let list: Vec<WhitelistEntry> = vec![];
+        let any_uuid = Uuid::new_v4();
+        assert!(!check_whitelist(&list, &any_uuid));
+    }
+
+    #[test]
+    fn test_permission_checker_self_always_allowed() {
+        let device_uuid = Uuid::new_v4();
+        let whitelists = Whitelists::default(); // empty whitelists
+        let checker = PermissionChecker::new(&whitelists, &device_uuid, &device_uuid);
+
+        assert!(checker.can_discover_view());
+        assert!(checker.can_configure_update());
+        assert!(checker.can_message_from());
+        assert!(checker.can_broadcast_sent());
+    }
+
+    #[test]
+    fn test_permission_checker_non_self_needs_whitelist() {
+        let device_uuid = Uuid::new_v4();
+        let actor = Uuid::new_v4();
+        let whitelists = Whitelists::default(); // empty whitelists
+        let checker = PermissionChecker::new(&whitelists, &actor, &device_uuid);
+
+        assert!(!checker.can_discover_view());
+        assert!(!checker.can_configure_update());
+        assert!(!checker.can_message_from());
+        assert!(!checker.can_broadcast_sent());
+    }
+
+    #[test]
+    fn test_whitelists_open_allows_all() {
+        let device_uuid = Uuid::new_v4();
+        let random_actor = Uuid::new_v4();
+        let whitelists = Whitelists::open();
+        let checker = PermissionChecker::new(&whitelists, &random_actor, &device_uuid);
+
+        assert!(checker.can_discover_view());
+        assert!(checker.can_configure_update());
+        assert!(checker.can_configure_sent());
+        assert!(checker.can_configure_received());
+        assert!(checker.can_message_from());
+        assert!(checker.can_message_sent());
+        assert!(checker.can_message_received());
+        assert!(checker.can_broadcast_sent());
+        assert!(checker.can_broadcast_received());
+    }
+
+    #[test]
+    fn test_whitelists_private_restricts() {
+        let owner = Uuid::new_v4();
+        let stranger = Uuid::new_v4();
+        let whitelists = Whitelists::private(&owner);
+
+        // Owner (not self, but in whitelist) can access
+        let device_uuid = Uuid::new_v4();
+        let checker_owner = PermissionChecker::new(&whitelists, &owner, &device_uuid);
+        assert!(checker_owner.can_discover_view());
+        assert!(checker_owner.can_configure_update());
+        assert!(checker_owner.can_message_from());
+
+        // Stranger cannot access
+        let device_uuid2 = Uuid::new_v4();
+        let checker_stranger = PermissionChecker::new(&whitelists, &stranger, &device_uuid2);
+        assert!(!checker_stranger.can_discover_view());
+        assert!(!checker_stranger.can_configure_update());
+        assert!(!checker_stranger.can_message_from());
     }
 }

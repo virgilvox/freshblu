@@ -1,4 +1,6 @@
+#[cfg(feature = "auth")]
 pub mod auth;
+
 pub mod device;
 pub mod error;
 pub mod message;

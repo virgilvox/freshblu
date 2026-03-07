@@ -1,0 +1,91 @@
+version: "3.8"
+
+services:
+  nats:
+    image: nats:2.10-alpine
+    command: --js --cluster_name freshblu
+    ports:
+      - "4222:4222"
+      - "8222:8222"
+    healthcheck:
+      test: ["CMD", "nats-server", "--signal", "ldm"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+
+  postgres:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_DB: freshblu
+      POSTGRES_USER: freshblu
+      POSTGRES_PASSWORD: "${POSTGRES_PASSWORD:-freshblu}"
+    volumes:
+      - pg_data:/var/lib/postgresql/data
+    ports:
+      - "5432:5432"
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U freshblu"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  redis:
+    image: redis:7-alpine
+    ports:
+      - "6379:6379"
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 5
+
+  gateway:
+    build:
+      context: ..
+      dockerfile: docker/Dockerfile.gateway
+    environment:
+      NATS_URL: nats://nats:4222
+      DATABASE_URL: postgresql://freshblu:${POSTGRES_PASSWORD:-freshblu}@postgres/freshblu
+      REDIS_URL: redis://redis:6379
+      FRESHBLU_HTTP_PORT: "3000"
+      FRESHBLU_MQTT_PORT: "1883"
+      RUST_LOG: "freshblu=info"
+    ports:
+      - "3000:3000"
+      - "1883:1883"
+    depends_on:
+      nats:
+        condition: service_healthy
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    deploy:
+      replicas: 2
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:3000/status"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+
+  router:
+    build:
+      context: ..
+      dockerfile: docker/Dockerfile.router
+    environment:
+      NATS_URL: nats://nats:4222
+      DATABASE_URL: postgresql://freshblu:${POSTGRES_PASSWORD:-freshblu}@postgres/freshblu
+      REDIS_URL: redis://redis:6379
+      RUST_LOG: "freshblu=info"
+    depends_on:
+      nats:
+        condition: service_healthy
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    deploy:
+      replicas: 2
+
+volumes:
+  pg_data:

@@ -3,9 +3,8 @@ use std::sync::Arc;
 
 use async_trait::async_trait;
 use freshblu_core::{
-    device::{Device, DeviceView, RegisterParams, UpdateParams},
+    device::{Device, DeviceView, RegisterParams},
     error::Result,
-    permissions::Whitelists,
     subscription::{CreateSubscriptionParams, Subscription, SubscriptionType},
     token::{GenerateTokenOptions, TokenRecord},
 };

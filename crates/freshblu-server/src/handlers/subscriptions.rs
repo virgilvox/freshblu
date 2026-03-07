@@ -5,15 +5,15 @@ use axum::{
 use freshblu_core::{
     error::FreshBluError,
     permissions::PermissionChecker,
-    subscription::{CreateSubscriptionParams, DeleteSubscriptionParams, Subscription, SubscriptionType},
+    subscription::{CreateSubscriptionParams, Subscription, SubscriptionType},
 };
 use std::str::FromStr;
 use uuid::Uuid;
 
 use super::AuthenticatedDevice;
-use crate::AppState;
+use crate::{ApiError, AppState};
 
-type ApiResult<T> = Result<Json<T>, FreshBluError>;
+type ApiResult<T> = Result<Json<T>, ApiError>;
 
 // POST /devices/:uuid/subscriptions
 pub async fn create_subscription(
@@ -29,27 +29,34 @@ pub async fn create_subscription(
             .store
             .get_device(&subscriber_uuid)
             .await?
-            .ok_or(FreshBluError::NotFound)?;
+            .ok_or(FreshBluError::NotFound).map_err(ApiError::from)?;
         let checker = PermissionChecker::new(
             &sub_device.meshblu.whitelists,
             &actor.uuid,
             &subscriber_uuid,
         );
         if !checker.can_configure_update() {
-            return Err(FreshBluError::Forbidden);
+            return Err(FreshBluError::Forbidden.into());
         }
     }
+
+    // Override subscriber_uuid from body with the path parameter
+    let params = CreateSubscriptionParams {
+        subscriber_uuid,
+        ..params
+    };
 
     // Verify permission to subscribe to emitter's events
     let emitter_device = state
         .store
         .get_device(&params.emitter_uuid)
         .await?
-        .ok_or(FreshBluError::NotFound)?;
+        .ok_or(FreshBluError::NotFound).map_err(ApiError::from)?;
 
+    // Use actor.uuid (the authenticated caller) for permission check
     let checker = PermissionChecker::new(
         &emitter_device.meshblu.whitelists,
-        &subscriber_uuid,
+        &actor.uuid,
         &params.emitter_uuid,
     );
 
@@ -67,7 +74,7 @@ pub async fn create_subscription(
     };
 
     if !allowed {
-        return Err(FreshBluError::Forbidden);
+        return Err(FreshBluError::Forbidden.into());
     }
 
     let sub = state.store.create_subscription(&params).await?;
@@ -86,14 +93,14 @@ pub async fn list_subscriptions(
             .store
             .get_device(&subscriber_uuid)
             .await?
-            .ok_or(FreshBluError::NotFound)?;
+            .ok_or(FreshBluError::NotFound).map_err(ApiError::from)?;
         let checker = PermissionChecker::new(
             &device.meshblu.whitelists,
             &actor.uuid,
             &subscriber_uuid,
         );
         if !checker.can_configure_update() {
-            return Err(FreshBluError::Forbidden);
+            return Err(FreshBluError::Forbidden.into());
         }
     }
 
@@ -112,19 +119,19 @@ pub async fn delete_subscription(
             .store
             .get_device(&subscriber_uuid)
             .await?
-            .ok_or(FreshBluError::NotFound)?;
+            .ok_or(FreshBluError::NotFound).map_err(ApiError::from)?;
         let checker = PermissionChecker::new(
             &device.meshblu.whitelists,
             &actor.uuid,
             &subscriber_uuid,
         );
         if !checker.can_configure_update() {
-            return Err(FreshBluError::Forbidden);
+            return Err(FreshBluError::Forbidden.into());
         }
     }
 
     let sub_type = SubscriptionType::from_str(&sub_type_str.replace("-", "."))
-        .map_err(|_| FreshBluError::Validation("invalid subscription type".into()))?;
+        .map_err(|_| ApiError::from(FreshBluError::Validation("invalid subscription type".into())))?;
 
     state
         .store

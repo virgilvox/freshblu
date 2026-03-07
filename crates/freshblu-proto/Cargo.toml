@@ -1,0 +1,16 @@
+[package]
+name = "freshblu-proto"
+version.workspace = true
+edition.workspace = true
+authors.workspace = true
+license.workspace = true
+repository.workspace = true
+description = "Shared protocol types and NATS subject helpers for FreshBlu"
+keywords = ["iot", "meshblu", "nats", "protocol"]
+categories = ["network-programming"]
+
+[dependencies]
+freshblu-core = { path = "../freshblu-core", version = "0.1.0" }
+serde = { workspace = true }
+serde_json = { workspace = true }
+uuid = { workspace = true }

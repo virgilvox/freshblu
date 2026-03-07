@@ -1,11 +1,10 @@
 use std::collections::HashMap;
 use std::str::FromStr;
-use std::sync::Arc;
 
 use async_trait::async_trait;
 use freshblu_core::{
     auth::{compute_device_hash, generate_token, hash_token, verify_token},
-    device::{Device, DeviceView, MeshbluMeta, RegisterParams, WhitelistEntry},
+    device::{Device, DeviceView, RegisterParams},
     error::{FreshBluError, Result},
     permissions::Whitelists,
     subscription::{CreateSubscriptionParams, Subscription, SubscriptionType},
@@ -24,6 +23,7 @@ pub struct SqliteStore {
 impl SqliteStore {
     pub async fn new(database_url: &str) -> anyhow::Result<Self> {
         let pool = SqlitePool::connect(database_url).await?;
+        sqlx::query("PRAGMA foreign_keys = ON").execute(&pool).await?;
         let store = Self { pool };
         store.migrate().await?;
         Ok(store)
@@ -57,7 +57,9 @@ impl SqliteStore {
                 emitter_uuid TEXT NOT NULL,
                 subscriber_uuid TEXT NOT NULL,
                 subscription_type TEXT NOT NULL,
-                UNIQUE(emitter_uuid, subscriber_uuid, subscription_type)
+                UNIQUE(emitter_uuid, subscriber_uuid, subscription_type),
+                FOREIGN KEY(subscriber_uuid) REFERENCES devices(uuid) ON DELETE CASCADE,
+                FOREIGN KEY(emitter_uuid) REFERENCES devices(uuid) ON DELETE CASCADE
             );
 
             CREATE INDEX IF NOT EXISTS idx_subs_emitter ON subscriptions(emitter_uuid, subscription_type);
@@ -132,7 +134,7 @@ impl DeviceStore for SqliteStore {
     }
 
     async fn get_device(&self, uuid: &Uuid) -> Result<Option<Device>> {
-        let row = sqlx::query("SELECT data FROM devices WHERE uuid = ?")
+        let row = sqlx::query("SELECT data, online FROM devices WHERE uuid = ?")
             .bind(uuid.to_string())
             .fetch_optional(&self.pool)
             .await
@@ -141,7 +143,9 @@ impl DeviceStore for SqliteStore {
         match row {
             Some(r) => {
                 let data: String = r.get("data");
-                let device = Self::deserialize_device(&data)?;
+                let online: i64 = r.get("online");
+                let mut device = Self::deserialize_device(&data)?;
+                device.online = online != 0;
                 Ok(Some(device))
             }
             None => Ok(None),
@@ -203,10 +207,42 @@ impl DeviceStore for SqliteStore {
     }
 
     async fn search_devices(&self, filters: &HashMap<String, Value>) -> Result<Vec<DeviceView>> {
-        // For SQLite JSON: use json_extract to filter
-        // Simple implementation: fetch all and filter in memory
-        // Production: build proper SQL JSON queries
-        let rows = sqlx::query("SELECT data, online FROM devices")
+        // Build SQL WHERE clauses for type and online filters
+        let mut sql = String::from("SELECT data, online FROM devices WHERE 1=1");
+        let mut bind_values: Vec<String> = Vec::new();
+        let mut remaining_filters: HashMap<&String, &Value> = HashMap::new();
+
+        // Extract SQL-filterable fields
+        let type_filter = filters.get("type").and_then(|v| v.as_str());
+        let online_filter = filters.get("online");
+
+        if type_filter.is_some() {
+            sql.push_str(" AND json_extract(data, '$.type') = ?");
+        }
+        if let Some(v) = online_filter {
+            let want = v == "true" || v == &Value::Bool(true);
+            sql.push_str(" AND online = ?");
+            bind_values.push(if want { "1".to_string() } else { "0".to_string() });
+        }
+
+        sql.push_str(" LIMIT 100");
+
+        // Collect remaining filters for in-memory matching
+        for (k, v) in filters {
+            if k != "type" && k != "online" {
+                remaining_filters.insert(k, v);
+            }
+        }
+
+        let mut query = sqlx::query(&sql);
+        if let Some(t) = type_filter {
+            query = query.bind(t.to_string());
+        }
+        for val in &bind_values {
+            query = query.bind(val.clone());
+        }
+
+        let rows = query
             .fetch_all(&self.pool)
             .await
             .map_err(|e| FreshBluError::Storage(e.to_string()))?;
@@ -219,24 +255,12 @@ impl DeviceStore for SqliteStore {
                 device.online = online != 0;
                 let view = device.to_view();
 
-                // Check filters
-                let matches = filters.iter().all(|(k, v)| {
-                    match k.as_str() {
-                        "online" => {
-                            let want_online = v == "true";
-                            view.online == want_online
-                        }
-                        "type" => view
-                            .device_type
-                            .as_ref()
-                            .map(|t| Value::String(t.clone()) == *v)
-                            .unwrap_or(false),
-                        _ => view
-                            .properties
-                            .get(k)
-                            .map(|pv| pv == v)
-                            .unwrap_or(false),
-                    }
+                // In-memory filter for arbitrary JSON property queries
+                let matches = remaining_filters.iter().all(|(k, v)| {
+                    view.properties
+                        .get(k.as_str())
+                        .map(|pv| pv == *v)
+                        .unwrap_or(false)
                 });
 
                 if matches {

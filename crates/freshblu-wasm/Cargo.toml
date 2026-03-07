@@ -1,13 +1,21 @@
 [package]
 name = "freshblu-wasm"
-version.workspace = true
-edition.workspace = true
-description = "FreshBlu WASM client library - works in browser and Node.js"
+version = "0.1.0"
+edition = "2021"
+authors = ["FreshBlu Contributors"]
+license = "MIT OR Apache-2.0"
+repository = "https://github.com/virgilvox/freshblu"
+description = "FreshBlu WASM client library for browser and Node.js"
+readme = "README.md"
+keywords = ["iot", "meshblu", "wasm", "websocket"]
+categories = ["wasm", "web-programming"]
 
 [lib]
 crate-type = ["cdylib", "rlib"]
 
 [dependencies]
+freshblu-core = { path = "../freshblu-core", version = "0.1.0", default-features = false }
+
 wasm-bindgen = "0.2"
 wasm-bindgen-futures = "0.4"
 js-sys = "0.3"
@@ -19,16 +27,21 @@ web-sys = { version = "0.3", features = [
     "console",
     "Window",
 ] }
-serde = { workspace = true }
-serde_json = { workspace = true }
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
 uuid = { version = "1", features = ["v4", "js"] }
-anyhow = { workspace = true }
+anyhow = "1"
 gloo-net = { version = "0.5", features = ["http", "websocket"] }
 
 [dev-dependencies]
 wasm-bindgen-test = "0.3"
 
+[dependencies.console_error_panic_hook]
+version = "0.1"
+optional = true
+
+[dependencies.serde-wasm-bindgen]
+version = "0.6"
+
 [profile.release]
-opt-level = "s"    # optimize for size in WASM
-console_error_panic_hook = { version = "0.1", optional = true }
-serde-wasm-bindgen = "0.6"
+opt-level = "s"

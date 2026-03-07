@@ -2,9 +2,22 @@
 name = "freshblu-store"
 version.workspace = true
 edition.workspace = true
+authors.workspace = true
+license.workspace = true
+repository.workspace = true
+description = "Storage abstraction and backends (SQLite/PostgreSQL/Redis cache) for FreshBlu IoT platform"
+readme = "README.md"
+keywords = ["iot", "meshblu", "storage", "sqlite", "postgres"]
+categories = ["database", "network-programming"]
+
+[features]
+default = ["sqlite"]
+sqlite = []
+postgres = []
+cache = ["dep:redis"]
 
 [dependencies]
-freshblu-core = { path = "../freshblu-core" }
+freshblu-core = { path = "../freshblu-core", version = "0.1.0" }
 sqlx = { workspace = true }
 serde = { workspace = true }
 serde_json = { workspace = true }
@@ -17,3 +30,13 @@ tracing = { workspace = true }
 dashmap = { workspace = true }
 futures = { workspace = true }
 async-trait = "0.1"
+redis = { workspace = true, optional = true }
+sha2 = { workspace = true }
+
+[dev-dependencies]
+criterion = { workspace = true }
+tokio = { workspace = true }
+
+[[bench]]
+name = "store_bench"
+harness = false

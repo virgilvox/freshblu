@@ -47,3 +47,31 @@ pub struct GenerateTokenOptions {
     pub expires_on: Option<i64>,
     pub tag: Option<String>,
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_token_record_not_expired() {
+        let record = TokenRecord::new(Uuid::new_v4(), "somehash".to_string());
+        // No expiry set => not expired
+        assert!(!record.is_expired());
+    }
+
+    #[test]
+    fn test_token_record_expired() {
+        let mut record = TokenRecord::new(Uuid::new_v4(), "somehash".to_string());
+        // Set expiry to a past timestamp (epoch 0)
+        record.expires_on = Some(0);
+        assert!(record.is_expired());
+    }
+
+    #[test]
+    fn test_token_record_future_not_expired() {
+        let mut record = TokenRecord::new(Uuid::new_v4(), "somehash".to_string());
+        // Set expiry far in the future
+        record.expires_on = Some(Utc::now().timestamp() + 86400);
+        assert!(!record.is_expired());
+    }
+}

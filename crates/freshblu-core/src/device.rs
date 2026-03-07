@@ -37,7 +37,7 @@ pub struct Device {
 }
 
 /// System-managed metadata block inside every device
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct MeshbluMeta {
     pub version: String,
@@ -77,7 +77,7 @@ pub struct RegisterResponse {
 }
 
 /// The response returned for whoami / get device (no token)
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct DeviceView {
     pub uuid: Uuid,
@@ -170,5 +170,79 @@ impl WhitelistEntry {
     }
     pub fn matches(&self, target: &Uuid) -> bool {
         self.uuid == "*" || self.uuid == target.to_string()
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use std::collections::HashMap;
+
+    #[test]
+    fn test_device_new() {
+        let props = HashMap::new();
+        let whitelists = Whitelists::default();
+        let device = Device::new(props, whitelists);
+
+        // UUID should be generated (non-nil)
+        assert!(!device.uuid.is_nil());
+        // meshblu should be populated
+        assert_eq!(device.meshblu.version, "2.0.0");
+        assert!(device.token.is_none());
+        assert!(!device.online);
+    }
+
+    #[test]
+    fn test_device_to_view_strips_token() {
+        let mut props = HashMap::new();
+        props.insert("token".to_string(), Value::String("secret".to_string()));
+        props.insert("name".to_string(), Value::String("mydevice".to_string()));
+
+        let device = Device::new(props, Whitelists::default());
+        let view = device.to_view();
+
+        // The view should not contain a "token" key in properties
+        assert!(!view.properties.contains_key("token"));
+        // Other properties should still be present
+        assert_eq!(
+            view.properties.get("name"),
+            Some(&Value::String("mydevice".to_string()))
+        );
+    }
+
+    #[test]
+    fn test_whitelist_entry_matches() {
+        let target = Uuid::new_v4();
+        let other = Uuid::new_v4();
+
+        // Wildcard matches everything
+        let wildcard = WhitelistEntry::wildcard();
+        assert!(wildcard.matches(&target));
+        assert!(wildcard.matches(&other));
+
+        // Specific entry matches only that UUID
+        let specific = WhitelistEntry::for_uuid(&target);
+        assert!(specific.matches(&target));
+        assert!(!specific.matches(&other));
+    }
+
+    #[test]
+    fn test_register_params_deserialization() {
+        let json = serde_json::json!({
+            "type": "device:sensor",
+            "name": "temp-sensor"
+        });
+
+        let params: RegisterParams = serde_json::from_value(json.clone()).unwrap();
+        assert_eq!(params.device_type, Some("device:sensor".to_string()));
+        assert_eq!(
+            params.properties.get("name"),
+            Some(&Value::String("temp-sensor".to_string()))
+        );
+        assert!(params.meshblu.is_none());
+
+        // Round-trip: serialize back and verify key fields
+        let re_json = serde_json::to_value(&json).unwrap();
+        assert_eq!(re_json["type"], "device:sensor");
     }
 }

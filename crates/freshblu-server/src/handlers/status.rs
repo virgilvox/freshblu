@@ -8,7 +8,7 @@ pub async fn status(State(state): State<AppState>) -> Json<Value> {
         "meshblu": true,
         "version": "2.0.0",
         "online": true,
-        "connections": state.hub.online_count(),
+        "connections": state.bus.online_count(),
         "engine": "freshblu"
     }))
 }

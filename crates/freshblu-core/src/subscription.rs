@@ -89,10 +89,64 @@ pub struct DeleteSubscriptionParams {
 }
 
 /// Route hop - tracks the path of a message through subscription chains
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub struct RouteHop {
     pub from: Uuid,
     pub to: Uuid,
     #[serde(rename = "type")]
     pub hop_type: SubscriptionType,
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_subscription_type_from_str() {
+        let cases = vec![
+            ("broadcast.sent", SubscriptionType::BroadcastSent),
+            ("broadcast.received", SubscriptionType::BroadcastReceived),
+            ("configure.sent", SubscriptionType::ConfigureSent),
+            ("configure.received", SubscriptionType::ConfigureReceived),
+            ("message.sent", SubscriptionType::MessageSent),
+            ("message.received", SubscriptionType::MessageReceived),
+            ("unregister.sent", SubscriptionType::UnregisterSent),
+            ("unregister.received", SubscriptionType::UnregisterReceived),
+        ];
+        for (input, expected) in cases {
+            let parsed: SubscriptionType = input.parse().unwrap();
+            assert_eq!(parsed, expected, "failed to parse {}", input);
+        }
+    }
+
+    #[test]
+    fn test_subscription_type_display_roundtrip() {
+        let all_types = vec![
+            SubscriptionType::BroadcastSent,
+            SubscriptionType::BroadcastReceived,
+            SubscriptionType::ConfigureSent,
+            SubscriptionType::ConfigureReceived,
+            SubscriptionType::MessageSent,
+            SubscriptionType::MessageReceived,
+            SubscriptionType::UnregisterSent,
+            SubscriptionType::UnregisterReceived,
+        ];
+        for st in all_types {
+            let displayed = st.to_string();
+            let parsed: SubscriptionType = displayed.parse().unwrap();
+            assert_eq!(parsed, st);
+        }
+    }
+
+    #[test]
+    fn test_unknown_subscription_type_fails() {
+        let result = "nonsense".parse::<SubscriptionType>();
+        assert!(result.is_err());
+
+        let result2 = "broadcast.unknown".parse::<SubscriptionType>();
+        assert!(result2.is_err());
+
+        let result3 = "".parse::<SubscriptionType>();
+        assert!(result3.is_err());
+    }
 }

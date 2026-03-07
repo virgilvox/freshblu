@@ -1,0 +1,9 @@
+/Users/obsidian/Ouijit/worktrees/freshblu/T-1/crates/freshblu-wasm/target/wasm32-unknown-unknown/release/deps/wasm_bindgen_futures-3efcf5212d978ba5.d: /Users/obsidian/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/wasm-bindgen-futures-0.4.64/src/lib.rs /Users/obsidian/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/wasm-bindgen-futures-0.4.64/src/queue.rs /Users/obsidian/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/wasm-bindgen-futures-0.4.64/src/task/singlethread.rs
+
+/Users/obsidian/Ouijit/worktrees/freshblu/T-1/crates/freshblu-wasm/target/wasm32-unknown-unknown/release/deps/libwasm_bindgen_futures-3efcf5212d978ba5.rlib: /Users/obsidian/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/wasm-bindgen-futures-0.4.64/src/lib.rs /Users/obsidian/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/wasm-bindgen-futures-0.4.64/src/queue.rs /Users/obsidian/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/wasm-bindgen-futures-0.4.64/src/task/singlethread.rs
+
+/Users/obsidian/Ouijit/worktrees/freshblu/T-1/crates/freshblu-wasm/target/wasm32-unknown-unknown/release/deps/libwasm_bindgen_futures-3efcf5212d978ba5.rmeta: /Users/obsidian/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/wasm-bindgen-futures-0.4.64/src/lib.rs /Users/obsidian/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/wasm-bindgen-futures-0.4.64/src/queue.rs /Users/obsidian/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/wasm-bindgen-futures-0.4.64/src/task/singlethread.rs
+
+/Users/obsidian/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/wasm-bindgen-futures-0.4.64/src/lib.rs:
+/Users/obsidian/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/wasm-bindgen-futures-0.4.64/src/queue.rs:
+/Users/obsidian/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/wasm-bindgen-futures-0.4.64/src/task/singlethread.rs:

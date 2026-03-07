@@ -10,9 +10,9 @@ use freshblu_core::{
 use uuid::Uuid;
 
 use super::AuthenticatedDevice;
-use crate::AppState;
+use crate::{ApiError, AppState};
 
-type ApiResult<T> = Result<Json<T>, FreshBluError>;
+type ApiResult<T> = Result<Json<T>, ApiError>;
 
 // POST /devices/:uuid/tokens
 pub async fn generate_token(
@@ -25,7 +25,7 @@ pub async fn generate_token(
         .store
         .get_device(&uuid)
         .await?
-        .ok_or(FreshBluError::NotFound)?;
+        .ok_or(FreshBluError::NotFound).map_err(ApiError::from)?;
 
     let checker = PermissionChecker::new(
         &device.meshblu.whitelists,
@@ -34,7 +34,7 @@ pub async fn generate_token(
     );
 
     if !checker.can_configure_update() {
-        return Err(FreshBluError::Forbidden);
+        return Err(FreshBluError::Forbidden.into());
     }
 
     let (record, plaintext) = state
@@ -59,7 +59,7 @@ pub async fn revoke_token(
         .store
         .get_device(&uuid)
         .await?
-        .ok_or(FreshBluError::NotFound)?;
+        .ok_or(FreshBluError::NotFound).map_err(ApiError::from)?;
 
     let checker = PermissionChecker::new(
         &device.meshblu.whitelists,
@@ -68,7 +68,7 @@ pub async fn revoke_token(
     );
 
     if !checker.can_configure_update() {
-        return Err(FreshBluError::Forbidden);
+        return Err(FreshBluError::Forbidden.into());
     }
 
     state.store.revoke_token(&uuid, &token).await?;

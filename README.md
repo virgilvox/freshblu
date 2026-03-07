@@ -1,18 +1,24 @@
 # FreshBlu
 
-**A modern, high-performance reimplementation of Meshblu/Octoblu in Rust.**
+A high-performance reimplementation of Meshblu/Octoblu in Rust.
 
-FreshBlu is a cross-protocol IoT machine-to-machine messaging platform. It is 100% API-compatible with the original Meshblu, single-binary deployable, SQLite-default (no deps), and compiles to WASM for browser/edge use.
-
----
+FreshBlu is a cross-protocol IoT machine-to-machine messaging platform. It is API-compatible with the original Meshblu, deploys as a single binary with zero dependencies (SQLite default), and scales horizontally with NATS, PostgreSQL, and Redis.
 
 ## What is Meshblu?
 
-Meshblu (originally SkyNet.im, later Citrix Octoblu) was the IoT backbone that treated every device, service, or API as a "device" with a UUID — like Twitter for machines. Any device could message any other device regardless of protocol. The original was Node.js + MongoDB + Redis. FreshBlu keeps every API and concept, rewrites the internals in Rust.
-
----
+Meshblu (originally SkyNet.im, later Citrix Octoblu) was an IoT backbone that treated every device, service, or API as a "device" with a UUID. Any device could message any other device regardless of protocol. The original was Node.js + MongoDB + Redis. FreshBlu keeps every API and concept, rewrites the internals in Rust.
 
 ## Architecture
+
+| Crate | Description | Package |
+|---|---|---|
+| [freshblu-core](crates/freshblu-core) | Core types: Device, Message, Permissions, Subscriptions | [crates.io](https://crates.io/crates/freshblu-core) |
+| [freshblu-proto](crates/freshblu-proto) | NATS subject helpers + wire types | [crates.io](https://crates.io/crates/freshblu-proto) |
+| [freshblu-store](crates/freshblu-store) | Storage trait + SQLite, PostgreSQL, Redis cache backends | [crates.io](https://crates.io/crates/freshblu-store) |
+| [freshblu-server](crates/freshblu-server) | HTTP/WS/MQTT server (axum + rumqttd), MessageBus trait | [crates.io](https://crates.io/crates/freshblu-server) |
+| [freshblu-router](crates/freshblu-router) | NATS consumer + subscription fanout worker | [crates.io](https://crates.io/crates/freshblu-router) |
+| [freshblu-cli](crates/freshblu-cli) | Command-line client (meshblu-util compatible) | [crates.io](https://crates.io/crates/freshblu-cli) |
+| [freshblu-wasm](crates/freshblu-wasm) | Browser/Node.js WASM client | [npm](https://www.npmjs.com/package/freshblu-wasm) |
 
 ```
 ┌───────────────────────────────────────────────────────────┐
@@ -23,102 +29,82 @@ Meshblu (originally SkyNet.im, later Citrix Octoblu) was the IoT backbone that t
 ┌───────────────────▼───────────────────────────────────────┐
 │                 FreshBlu Core                               │
 │                                                            │
-│  Device Registry  │  Permission Engine  │  Message Router │
+│  Device Registry  │  Permission Engine  │  MessageBus      │
 │                   │                     │                  │
-│  UUID + Token     │  Whitelists v2.0    │  Pub/Sub fanout  │
-│  (bcrypt)         │  Per-operation      │  Subscription    │
-│                   │  per-direction      │  routing         │
+│  UUID + Token     │  Whitelists v2.0    │  LocalBus (dev)  │
+│  (bcrypt)         │  Per-operation      │  NatsBus (prod)  │
+│                   │  per-direction      │                  │
 └───────────────────┬───────────────────────────────────────┘
                     │
 ┌───────────────────▼───────────────────────────────────────┐
 │                 Storage Layer (pluggable)                  │
-│  SQLite (default, zero deps)  │  PostgreSQL               │
+│  SQLite (default)  │  PostgreSQL  │  Redis (cache layer)  │
 └───────────────────────────────────────────────────────────┘
 ```
 
----
-
 ## Quick Start
-
-### Run with Docker
-
-```bash
-docker pull freshblu/freshblu:latest
-docker run -p 3000:3000 -p 1883:1883 freshblu/freshblu
-```
-
-Or with docker-compose:
-```bash
-cd docker && docker-compose up
-```
 
 ### Run from source
 
 ```bash
-cargo build --release
-./target/release/freshblu-server
-# → HTTP on :3000, WebSocket on :3000/ws, MQTT on :1883
+cargo run --bin freshblu-server
+# HTTP on :3000, WebSocket on :3000/ws, MQTT on :1883
 ```
 
-### Single binary, zero config
-```bash
-# Default: SQLite database in current directory
-freshblu-server
+### Docker
 
-# Custom config via env
+```bash
+docker build -f docker/Dockerfile -t freshblu .
+docker run -p 3000:3000 -p 1883:1883 -v freshblu-data:/data freshblu
+```
+
+### Docker Compose (single-process)
+
+```bash
+docker compose up
+```
+
+### Scaled deployment
+
+Uses NATS for cross-pod messaging, PostgreSQL for storage, and Redis for caching and presence.
+
+```bash
+docker compose -f docker/docker-compose.prod.yml up
+# 2x gateway pods + 2x router workers + NATS + PostgreSQL + Redis
+```
+
+### Custom config via env
+
+```bash
 DATABASE_URL=sqlite:/tmp/myapp.db \
 FRESHBLU_HTTP_PORT=8080 \
 FRESHBLU_PEPPER=my-secret \
+FRESHBLU_OPEN_REGISTRATION=false \
 freshblu-server
 ```
 
----
+## Configuration
 
-## CLI
-
-```bash
-# Install
-cargo install freshblu-cli
-
-# Register a device (saves uuid/token to ./freshblu.json)
-freshblu register
-freshblu register -d '{"type":"sensor","location":"mesa-lab"}'
-
-# Use registered credentials
-freshblu whoami
-freshblu get <uuid>
-freshblu update <uuid> -d '{"firmware":"2.0"}'
-
-# Messaging
-freshblu message -d '{"devices":["*"],"payload":{"temp":72}}'
-freshblu message -d '{"devices":["<target-uuid>"],"topic":"alert","payload":"fire"}'
-
-# Subscriptions
-freshblu subscribe <emitter-uuid> broadcast.sent
-freshblu subscribe <emitter-uuid> message.received
-
-# Token management
-freshblu token generate
-freshblu token generate --expires-on 1735689600 --tag session
-freshblu token revoke <token>
-
-# Server status
-freshblu status
-
-# Target a different server
-freshblu --server http://my-freshblu.example.com:3000 whoami
-```
-
----
+| Variable | Default | Description |
+|---|---|---|
+| `FRESHBLU_HTTP_PORT` | `3000` | HTTP and WebSocket port |
+| `FRESHBLU_MQTT_PORT` | `1883` | MQTT broker port |
+| `DATABASE_URL` | `sqlite:freshblu.db` | SQLite or PostgreSQL connection string |
+| `NATS_URL` | (unset) | Set to enable NatsBus for cross-pod messaging (e.g. `nats://localhost:4222`) |
+| `REDIS_URL` | (unset) | Set to enable Redis cache layer and presence tracking |
+| `FRESHBLU_PEPPER` | `change-me-in-production` | Bcrypt pepper for token hashing |
+| `FRESHBLU_OPEN_REGISTRATION` | `true` | Allow unauthenticated device registration |
+| `FRESHBLU_MAX_MESSAGE_SIZE` | `1048576` | Max message payload in bytes (1MB) |
+| `RUST_LOG` | `info` | Log level (`trace`, `debug`, `info`, `warn`, `error`) |
 
 ## HTTP API (Meshblu-compatible)
 
-All endpoints accept Basic Auth with `uuid:token`.
+All authenticated endpoints use HTTP Basic Auth: `Authorization: Basic base64(uuid:token)`.
 
 ### Device Management
 
 | Method | Path | Description |
-|--------|------|-------------|
+|---|---|---|
 | `POST` | `/devices` | Register a new device |
 | `GET` | `/devices/:uuid` | Get device by UUID |
 | `PUT` | `/devices/:uuid` | Update device properties |
@@ -130,13 +116,13 @@ All endpoints accept Basic Auth with `uuid:token`.
 ### Messaging
 
 | Method | Path | Description |
-|--------|------|-------------|
+|---|---|---|
 | `POST` | `/messages` | Send message to device(s) or broadcast |
 
 ### Subscriptions
 
 | Method | Path | Description |
-|--------|------|-------------|
+|---|---|---|
 | `POST` | `/devices/:uuid/subscriptions` | Create subscription |
 | `GET` | `/devices/:uuid/subscriptions` | List subscriptions |
 | `DELETE` | `/devices/:uuid/subscriptions/:emitter/:type` | Delete subscription |
@@ -144,88 +130,79 @@ All endpoints accept Basic Auth with `uuid:token`.
 ### Token Management
 
 | Method | Path | Description |
-|--------|------|-------------|
+|---|---|---|
 | `POST` | `/devices/:uuid/tokens` | Generate a new token |
 | `DELETE` | `/devices/:uuid/tokens/:token` | Revoke a token |
 
 ### Utility
 
 | Method | Path | Description |
-|--------|------|-------------|
+|---|---|---|
 | `GET` | `/status` | Server health check |
+| `GET` | `/metrics` | Prometheus metrics |
+| `POST` | `/authenticate` | Verify credentials |
 
----
+V2/V3 aliases are available: `/v2/devices/:uuid`, `/v2/whoami`, `/v2/messages`, `/v3/devices/:uuid`.
 
 ## WebSocket API
 
-Connect to `ws://hostname:3000/ws`.
+Connect to `ws://hostname:3000/ws` or `ws://hostname:3000/socket.io`.
 
-### Events (client → server)
-
-```json
-// Authenticate
-{ "event": "identity", "uuid": "...", "token": "..." }
-
-// Send a message
-{ "event": "message", "devices": ["*"], "payload": { "temp": 72 } }
-
-// Subscribe to events
-{ "event": "subscribe", "emitterUuid": "...", "type": "broadcast.sent" }
-
-// Whoami
-{ "event": "whoami" }
-
-// Update own device
-{ "event": "update", "firmware": "2.0" }
-```
-
-### Events (server → client)
+### Events (client to server)
 
 ```json
-// Auth successful
-{ "event": "ready", "uuid": "...", "meshblu": { ... } }
-
-// Auth failed
-{ "event": "notReady", "reason": "unauthorized" }
-
-// Message received
-{ "event": "message", "devices": ["..."], "fromUuid": "...", "payload": {...} }
-
-// Broadcast received (via subscription)
-{ "event": "broadcast", "devices": ["*"], "fromUuid": "...", "payload": {...} }
-
-// Device config changed
-{ "event": "config", "device": { "uuid": "...", ... } }
-
-// Device unregistered
-{ "event": "unregistered", "uuid": "..." }
+{"event": "identity", "uuid": "...", "token": "..."}
+{"event": "message", "devices": ["*"], "payload": {"temp": 72}}
+{"event": "subscribe", "emitterUuid": "...", "type": "broadcast.sent"}
+{"event": "unsubscribe", "emitterUuid": "...", "type": "broadcast.sent"}
+{"event": "update", "firmware": "2.0"}
+{"event": "whoami"}
+{"event": "register", "type": "sensor"}
+{"event": "unregister", "uuid": "..."}
+{"event": "ping"}
 ```
 
----
+### Events (server to client)
+
+```json
+{"event": "ready", "uuid": "...", "meshblu": {...}}
+{"event": "notReady", "reason": "unauthorized"}
+{"event": "message", "devices": ["..."], "fromUuid": "...", "payload": {...}}
+{"event": "broadcast", "devices": ["*"], "fromUuid": "...", "payload": {...}}
+{"event": "config", "device": {"uuid": "...", ...}}
+{"event": "unregistered", "uuid": "..."}
+{"event": "pong"}
+{"event": "error", "message": "..."}
+```
+
+## MQTT
+
+Auth: `username=device-uuid`, `password=device-token`.
+
+| Topic | Direction | Description |
+|---|---|---|
+| `{uuid}/message` | Publish | Send a message (JSON body with `devices` + `payload`) |
+| `{uuid}/broadcast` | Publish | Broadcast to subscribers |
 
 ## Permission System (v2.0)
 
-Every device has a `meshblu.whitelists` block. The special UUID `"*"` means everyone is allowed.
+Every device has a `meshblu.whitelists` block. The special UUID `"*"` means everyone is allowed. An empty whitelist means nobody except the device itself is allowed.
 
 ```json
 {
-  "uuid": "device-uuid",
   "meshblu": {
-    "version": "2.0.0",
     "whitelists": {
-      "discover":   { "view": [{"uuid": "*"}], "as": [] },
-      "configure":  { "update": [{"uuid": "owner-uuid"}], "sent": [{"uuid": "*"}] },
-      "message":    { "from": [{"uuid": "*"}], "sent": [{"uuid": "*"}] },
-      "broadcast":  { "sent": [{"uuid": "*"}], "received": [{"uuid": "*"}] }
+      "discover":   {"view": [{"uuid": "*"}], "as": []},
+      "configure":  {"update": [{"uuid": "owner-uuid"}], "sent": [{"uuid": "*"}], "received": [], "as": []},
+      "message":    {"from": [{"uuid": "*"}], "sent": [{"uuid": "*"}], "received": [], "as": []},
+      "broadcast":  {"sent": [{"uuid": "*"}], "received": [], "as": []}
     }
   }
 }
 ```
 
-### Whitelist types
-
 | Category | Sub-type | Controls |
-|----------|----------|----------|
+|---|---|---|
 | `discover` | `view` | Who can GET this device |
 | `discover` | `as` | Who can act as this device for discovery |
 | `configure` | `update` | Who can PUT/DELETE this device |
@@ -242,16 +219,16 @@ Every device has a `meshblu.whitelists` block. The special UUID `"*"` means ever
 
 ### Acting as another device
 
-Add the `x-meshblu-as: <uuid>` header to act as another device (requires `as` permission).
+Add the `x-meshblu-as: <uuid>` header to act as another device. The actor must have the appropriate `as` permission on the target device's whitelist.
 
----
+See [docs/permissions.md](docs/permissions.md) for the full reference.
 
 ## Subscription Types
 
 | Type | Description |
-|------|-------------|
+|---|---|
 | `broadcast.sent` | Broadcasts sent FROM the emitter |
-| `broadcast.received` | Broadcasts the emitter receives (via its own subscriptions) |
+| `broadcast.received` | Broadcasts the emitter receives |
 | `message.sent` | Direct messages sent BY the emitter |
 | `message.received` | Direct messages received BY the emitter |
 | `configure.sent` | Config-update events sent FROM the emitter |
@@ -259,161 +236,64 @@ Add the `x-meshblu-as: <uuid>` header to act as another device (requires `as` pe
 | `unregister.sent` | Emitter unregistered itself |
 | `unregister.received` | Someone unregistered the emitter |
 
-### Message routing with subscriptions
-
-```
-Device A broadcasts → all devices in A's broadcast.sent whitelist
-                   → each of those devices' broadcast.received subscribers
-
-Device A messages Device B → Device B (direct delivery)
-                           → devices subscribed to B's message.received
-                           → devices subscribed to A's message.sent
-```
-
----
-
-## JavaScript / TypeScript SDK
+## CLI
 
 ```bash
-npm install freshblu
+cargo install freshblu-cli
+
+freshblu register
+freshblu whoami
+freshblu get <uuid>
+freshblu update <uuid> -d '{"firmware":"2.0"}'
+freshblu message -d '{"devices":["*"],"payload":{"temp":72}}'
+freshblu subscribe <emitter-uuid> broadcast.sent
+freshblu token generate
+freshblu token revoke <token>
+freshblu status
+freshblu --server http://my-freshblu:3000 whoami
 ```
-
-```typescript
-import { FreshBlu, FreshBluHttp } from 'freshblu';
-
-// HTTP client
-const http = new FreshBluHttp({ hostname: 'localhost', port: 3000 });
-
-const device = await http.register({ type: 'my-sensor' });
-http.setCredentials(device.uuid, device.token);
-
-await http.message({ devices: ['*'], payload: { temp: 72.4 } });
-
-// WebSocket client (real-time)
-const ws = new FreshBlu({
-  hostname: 'localhost', port: 3000,
-  uuid: device.uuid, token: device.token,
-});
-
-ws.on('ready', () => console.log('connected'));
-ws.on('message', (msg) => console.log('received:', msg));
-ws.on('broadcast', (msg) => console.log('broadcast:', msg));
-
-ws.connect();
-ws.sendMessage({ devices: ['*'], payload: 'hello world' });
-```
-
----
-
-## Python SDK
-
-```bash
-pip install freshblu[all]
-```
-
-```python
-from freshblu import FreshBlu, FreshBluHttp, SubscriptionType
-
-client = FreshBluHttp(hostname="localhost", port=3000)
-
-device = client.register({"type": "python-sensor"})
-client.set_credentials(device["uuid"], device["token"])
-
-client.message({"devices": ["*"], "payload": {"temp": 23.4}})
-```
-
----
 
 ## WASM (Browser + Edge)
 
 ```bash
 cd crates/freshblu-wasm
-wasm-pack build --target web    # Browser
-wasm-pack build --target nodejs # Node.js
-wasm-pack build --target bundler # Webpack/Vite
+wasm-pack build --target web
 ```
 
 ```javascript
 import init, { FreshBluConfig, FreshBluHttp } from './pkg/freshblu_wasm.js';
-
 await init();
-
 const config = new FreshBluConfig('localhost', 3000);
 const client = new FreshBluHttp(config);
-
 const status = await client.status();
-console.log(status);
 ```
 
----
-
-## Environment Variables
-
-| Variable | Default | Description |
-|----------|---------|-------------|
-| `FRESHBLU_HTTP_PORT` | `3000` | HTTP server port |
-| `FRESHBLU_MQTT_PORT` | `1883` | MQTT broker port |
-| `DATABASE_URL` | `sqlite:freshblu.db` | Database (SQLite or PostgreSQL) |
-| `FRESHBLU_PEPPER` | `change-me-in-production` | Extra secret for token security |
-| `FRESHBLU_OPEN_REGISTRATION` | `true` | Allow unauthenticated device registration |
-| `FRESHBLU_MAX_MESSAGE_SIZE` | `1048576` | Max message size in bytes (1MB) |
-| `RUST_LOG` | `info` | Log level (`trace`, `debug`, `info`, `warn`, `error`) |
-
----
-
-## PostgreSQL (Production)
+## Building and Testing
 
 ```bash
-DATABASE_URL=postgresql://user:pass@localhost/freshblu freshblu-server
-```
-
----
-
-## Migrating from Meshblu
-
-FreshBlu is a drop-in replacement. Change your connection config:
-
-```javascript
-// Before (Meshblu)
-const conn = require('meshblu')({
-  hostname: 'meshblu.octoblu.com',
-  port: 443,
-  uuid: '...',
-  token: '...'
-});
-
-// After (FreshBlu)
-import { FreshBlu } from 'freshblu';
-const conn = new FreshBlu({
-  hostname: 'your-freshblu.example.com',
-  port: 3000,
-  uuid: '...',
-  token: '...'
-});
-// All events, methods, and behavior are identical
-```
-
----
-
-## Building
-
-```bash
-# Server + CLI
+# Build
 cargo build --release
 
-# WASM client
-cargo install wasm-pack
-cd crates/freshblu-wasm && wasm-pack build --target web
+# Run all tests (185 passing)
+cargo test --workspace
 
-# JS SDK
-cd sdks/js && npm install && npm run build
+# Run stress tests (ignored by default)
+cargo test -p freshblu-server stress -- --ignored
 
-# Python SDK
-cd sdks/python && pip install -e ".[all]"
+# Run MQTT broker integration tests (needs port availability)
+cargo test -p freshblu-server mqtt -- --ignored
+
+# Run benchmarks (16 across all crates)
+cargo bench --workspace
+
+# Lint
+cargo clippy --workspace --exclude freshblu-wasm
+
+# Build with specific feature flags
+cargo build -p freshblu-store --features postgres
+cargo build -p freshblu-store --features cache
 ```
-
----
 
 ## License
 
-MIT
+MIT OR Apache-2.0
