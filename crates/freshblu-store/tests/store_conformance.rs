@@ -207,10 +207,7 @@ async fn generate_and_use_additional_token() {
     let opts = GenerateTokenOptions::default();
     let (_record, new_token) = store.generate_token(&device.uuid, opts).await.unwrap();
 
-    let authed = store
-        .authenticate(&device.uuid, &new_token)
-        .await
-        .unwrap();
+    let authed = store.authenticate(&device.uuid, &new_token).await.unwrap();
     assert!(authed.is_some());
     assert_eq!(authed.unwrap().uuid, device.uuid);
 }
@@ -491,8 +488,10 @@ async fn unregister_cascades_subscriptions() {
         .await
         .unwrap();
 
-    assert!(subscribers.is_empty(),
-        "subscriptions should cascade-delete when subscriber device is removed");
+    assert!(
+        subscribers.is_empty(),
+        "subscriptions should cascade-delete when subscriber device is removed"
+    );
 }
 
 #[tokio::test]
@@ -606,9 +605,21 @@ async fn revoke_tokens_by_tag() {
     let (_, perm_token) = store.generate_token(&device.uuid, opts3).await.unwrap();
 
     // Verify all tokens work
-    assert!(store.authenticate(&device.uuid, &tagged_token1).await.unwrap().is_some());
-    assert!(store.authenticate(&device.uuid, &tagged_token2).await.unwrap().is_some());
-    assert!(store.authenticate(&device.uuid, &perm_token).await.unwrap().is_some());
+    assert!(store
+        .authenticate(&device.uuid, &tagged_token1)
+        .await
+        .unwrap()
+        .is_some());
+    assert!(store
+        .authenticate(&device.uuid, &tagged_token2)
+        .await
+        .unwrap()
+        .is_some());
+    assert!(store
+        .authenticate(&device.uuid, &perm_token)
+        .await
+        .unwrap()
+        .is_some());
 
     // Revoke by tag "temp"
     let mut query = HashMap::new();
@@ -620,17 +631,29 @@ async fn revoke_tokens_by_tag() {
 
     // Tagged tokens should be gone
     assert!(
-        store.authenticate(&device.uuid, &tagged_token1).await.unwrap().is_none(),
+        store
+            .authenticate(&device.uuid, &tagged_token1)
+            .await
+            .unwrap()
+            .is_none(),
         "tagged token 1 should be revoked"
     );
     assert!(
-        store.authenticate(&device.uuid, &tagged_token2).await.unwrap().is_none(),
+        store
+            .authenticate(&device.uuid, &tagged_token2)
+            .await
+            .unwrap()
+            .is_none(),
         "tagged token 2 should be revoked"
     );
 
     // Permanent token should still work
     assert!(
-        store.authenticate(&device.uuid, &perm_token).await.unwrap().is_some(),
+        store
+            .authenticate(&device.uuid, &perm_token)
+            .await
+            .unwrap()
+            .is_some(),
         "permanent token should still be valid"
     );
 }
@@ -664,5 +687,9 @@ async fn concurrent_register_50() {
         );
     }
 
-    assert_eq!(uuids.len(), 50, "all 50 concurrent registrations should produce unique UUIDs");
+    assert_eq!(
+        uuids.len(),
+        50,
+        "all 50 concurrent registrations should produce unique UUIDs"
+    );
 }

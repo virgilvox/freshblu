@@ -30,9 +30,7 @@ impl PostgresStore {
 
     async fn migrate(&self) -> anyhow::Result<()> {
         let sql = include_str!("../migrations/001_initial.sql");
-        sqlx::raw_sql(sql)
-            .execute(&self.pool)
-            .await?;
+        sqlx::raw_sql(sql).execute(&self.pool).await?;
         Ok(())
     }
 
@@ -65,8 +63,8 @@ impl DeviceStore for PostgresStore {
             device.device_type = Some(t.clone());
         }
 
-        let device_json = serde_json::to_string(&device)
-            .map_err(|e| FreshBluError::Storage(e.to_string()))?;
+        let device_json =
+            serde_json::to_string(&device).map_err(|e| FreshBluError::Storage(e.to_string()))?;
         let hash = compute_device_hash(&device_json);
         device.meshblu.hash = hash;
 
@@ -128,8 +126,8 @@ impl DeviceStore for PostgresStore {
         }
 
         device.meshblu.updated_at = Some(chrono::Utc::now());
-        let device_json = serde_json::to_string(&device)
-            .map_err(|e| FreshBluError::Storage(e.to_string()))?;
+        let device_json =
+            serde_json::to_string(&device).map_err(|e| FreshBluError::Storage(e.to_string()))?;
         let hash = compute_device_hash(&device_json);
         device.meshblu.hash = hash;
 
@@ -175,7 +173,11 @@ impl DeviceStore for PostgresStore {
 
         if let Some(online_val) = filters.get("online") {
             let want = online_val == "true" || online_val == &Value::Bool(true);
-            bind_values.push(if want { "true".to_string() } else { "false".to_string() });
+            bind_values.push(if want {
+                "true".to_string()
+            } else {
+                "false".to_string()
+            });
             conditions.push(format!("online = ${}", bind_values.len()));
         }
 
@@ -350,10 +352,7 @@ impl DeviceStore for PostgresStore {
         Ok(records)
     }
 
-    async fn create_subscription(
-        &self,
-        params: &CreateSubscriptionParams,
-    ) -> Result<Subscription> {
+    async fn create_subscription(&self, params: &CreateSubscriptionParams) -> Result<Subscription> {
         sqlx::query(
             "INSERT INTO subscriptions (emitter_uuid, subscriber_uuid, subscription_type) \
              VALUES ($1, $2, $3) \

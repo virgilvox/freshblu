@@ -8,15 +8,14 @@ use crate::hub::MessageHub;
 
 /// Single-process message bus backed by the in-memory `MessageHub`.
 /// Used when no NATS_URL is configured (dev mode / single-pod deployment).
+#[derive(Default)]
 pub struct LocalBus {
     hub: MessageHub,
 }
 
 impl LocalBus {
     pub fn new() -> Self {
-        Self {
-            hub: MessageHub::default(),
-        }
+        Self::default()
     }
 }
 

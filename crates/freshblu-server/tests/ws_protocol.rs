@@ -1,7 +1,7 @@
 mod helpers;
 
-use helpers::*;
 use futures::SinkExt;
+use helpers::*;
 use serde_json::json;
 use tokio_tungstenite::{connect_async, tungstenite::Message};
 use uuid::Uuid;
@@ -19,7 +19,9 @@ async fn ws_auth_invalid_uuid() {
     });
     ws.send(Message::Text(identity.to_string())).await.unwrap();
 
-    let resp = recv_json(&mut ws).await.expect("expected notReady response");
+    let resp = recv_json(&mut ws)
+        .await
+        .expect("expected notReady response");
     assert_eq!(resp["event"], "notReady");
     assert!(
         resp["reason"].as_str().is_some(),
@@ -29,7 +31,9 @@ async fn ws_auth_invalid_uuid() {
     // Connection should still be open -- verify with a ping
     let ping = json!({ "event": "ping" });
     ws.send(Message::Text(ping.to_string())).await.unwrap();
-    let pong = recv_json(&mut ws).await.expect("connection should still be alive");
+    let pong = recv_json(&mut ws)
+        .await
+        .expect("connection should still be alive");
     assert_eq!(pong["event"], "pong");
 }
 
@@ -47,7 +51,9 @@ async fn ws_auth_nonexistent_device() {
     });
     ws.send(Message::Text(identity.to_string())).await.unwrap();
 
-    let resp = recv_json(&mut ws).await.expect("expected notReady response");
+    let resp = recv_json(&mut ws)
+        .await
+        .expect("expected notReady response");
     assert_eq!(resp["event"], "notReady");
 }
 
@@ -64,10 +70,18 @@ async fn ws_register_creates_device() {
     });
     ws.send(Message::Text(register.to_string())).await.unwrap();
 
-    let resp = recv_json(&mut ws).await.expect("expected registered response");
+    let resp = recv_json(&mut ws)
+        .await
+        .expect("expected registered response");
     assert_eq!(resp["event"], "registered");
-    assert!(resp["uuid"].is_string(), "registered event should include uuid");
-    assert!(resp["token"].is_string(), "registered event should include token");
+    assert!(
+        resp["uuid"].is_string(),
+        "registered event should include uuid"
+    );
+    assert!(
+        resp["token"].is_string(),
+        "registered event should include token"
+    );
 
     // Verify device exists in the store
     let new_uuid: Uuid = resp["uuid"]
@@ -90,7 +104,9 @@ async fn ws_unregister_self_removes() {
         "event": "unregister",
         "uuid": uuid,
     });
-    ws.send(Message::Text(unregister.to_string())).await.unwrap();
+    ws.send(Message::Text(unregister.to_string()))
+        .await
+        .unwrap();
 
     // Device should be removed from the store
     let device_uuid: Uuid = uuid.parse().unwrap();
@@ -98,7 +114,10 @@ async fn ws_unregister_self_removes() {
     tokio::time::sleep(std::time::Duration::from_millis(200)).await;
 
     let fetched = state.store.get_device(&device_uuid).await.unwrap();
-    assert!(fetched.is_none(), "device should be removed after self-unregister");
+    assert!(
+        fetched.is_none(),
+        "device should be removed after self-unregister"
+    );
 
     // The WS stream should close (next read returns None or Close)
     let next = recv_json(&mut ws).await;
@@ -118,7 +137,9 @@ async fn ws_unregister_other_denied() {
         "event": "unregister",
         "uuid": uuid_b,
     });
-    ws_a.send(Message::Text(unregister.to_string())).await.unwrap();
+    ws_a.send(Message::Text(unregister.to_string()))
+        .await
+        .unwrap();
 
     // Give the handler a moment
     tokio::time::sleep(std::time::Duration::from_millis(200)).await;
@@ -134,7 +155,9 @@ async fn ws_unregister_other_denied() {
     // A's connection should still be alive
     let ping = json!({ "event": "ping" });
     ws_a.send(Message::Text(ping.to_string())).await.unwrap();
-    let pong = recv_json(&mut ws_a).await.expect("A's WS should still be alive");
+    let pong = recv_json(&mut ws_a)
+        .await
+        .expect("A's WS should still be alive");
     assert_eq!(pong["event"], "pong");
 }
 
@@ -164,7 +187,9 @@ async fn ws_malformed_messages_tolerated() {
     // Connection should still work
     let ping = json!({ "event": "ping" });
     ws.send(Message::Text(ping.to_string())).await.unwrap();
-    let pong = recv_json(&mut ws).await.expect("connection should survive malformed messages");
+    let pong = recv_json(&mut ws)
+        .await
+        .expect("connection should survive malformed messages");
     assert_eq!(pong["event"], "pong");
 }
 
@@ -194,11 +219,15 @@ async fn ws_multiple_connections_same_device() {
         .await;
 
     // Both connections should receive the message
-    let resp1 = recv_json(&mut ws1).await.expect("ws1 should receive message");
+    let resp1 = recv_json(&mut ws1)
+        .await
+        .expect("ws1 should receive message");
     assert_eq!(resp1["event"], "message");
     assert_eq!(resp1["payload"]["test"], "multi-conn");
 
-    let resp2 = recv_json(&mut ws2).await.expect("ws2 should receive message");
+    let resp2 = recv_json(&mut ws2)
+        .await
+        .expect("ws2 should receive message");
     assert_eq!(resp2["event"], "message");
     assert_eq!(resp2["payload"]["test"], "multi-conn");
 }
@@ -220,7 +249,9 @@ async fn ws_subscribe_then_receive_broadcast() {
         "emitterUuid": uuid_b,
         "type": "broadcast.sent",
     });
-    ws_a.send(Message::Text(subscribe.to_string())).await.unwrap();
+    ws_a.send(Message::Text(subscribe.to_string()))
+        .await
+        .unwrap();
 
     // Give time for subscription to be processed
     tokio::time::sleep(std::time::Duration::from_millis(200)).await;
@@ -232,10 +263,14 @@ async fn ws_subscribe_then_receive_broadcast() {
         "devices": ["*"],
         "payload": {"data": "hello-broadcast"},
     });
-    ws_b.send(Message::Text(broadcast.to_string())).await.unwrap();
+    ws_b.send(Message::Text(broadcast.to_string()))
+        .await
+        .unwrap();
 
     // A should receive the broadcast
-    let resp = recv_json(&mut ws_a).await.expect("A should receive broadcast from B");
+    let resp = recv_json(&mut ws_a)
+        .await
+        .expect("A should receive broadcast from B");
     assert_eq!(resp["event"], "broadcast");
     assert_eq!(resp["payload"]["data"], "hello-broadcast");
 }
@@ -255,7 +290,9 @@ async fn ws_unsubscribe_stops_events() {
         "emitterUuid": uuid_b,
         "type": "broadcast.sent",
     });
-    ws_a.send(Message::Text(subscribe.to_string())).await.unwrap();
+    ws_a.send(Message::Text(subscribe.to_string()))
+        .await
+        .unwrap();
     tokio::time::sleep(std::time::Duration::from_millis(200)).await;
 
     // B broadcasts -- A should receive it
@@ -265,9 +302,13 @@ async fn ws_unsubscribe_stops_events() {
         "devices": ["*"],
         "payload": {"seq": 1},
     });
-    ws_b.send(Message::Text(broadcast1.to_string())).await.unwrap();
+    ws_b.send(Message::Text(broadcast1.to_string()))
+        .await
+        .unwrap();
 
-    let resp = recv_json(&mut ws_a).await.expect("A should receive first broadcast");
+    let resp = recv_json(&mut ws_a)
+        .await
+        .expect("A should receive first broadcast");
     assert_eq!(resp["event"], "broadcast");
     assert_eq!(resp["payload"]["seq"], 1);
 
@@ -277,7 +318,9 @@ async fn ws_unsubscribe_stops_events() {
         "emitterUuid": uuid_b,
         "type": "broadcast.sent",
     });
-    ws_a.send(Message::Text(unsubscribe.to_string())).await.unwrap();
+    ws_a.send(Message::Text(unsubscribe.to_string()))
+        .await
+        .unwrap();
     tokio::time::sleep(std::time::Duration::from_millis(200)).await;
 
     // B broadcasts again -- A should NOT receive it
@@ -286,7 +329,9 @@ async fn ws_unsubscribe_stops_events() {
         "devices": ["*"],
         "payload": {"seq": 2},
     });
-    ws_b.send(Message::Text(broadcast2.to_string())).await.unwrap();
+    ws_b.send(Message::Text(broadcast2.to_string()))
+        .await
+        .unwrap();
 
     let resp = recv_json(&mut ws_a).await;
     assert!(

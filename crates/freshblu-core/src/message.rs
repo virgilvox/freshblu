@@ -61,7 +61,9 @@ pub enum DeviceEvent {
     /// A message was received
     Message(Message),
     /// The device's config was updated
-    Config { device: crate::device::DeviceView },
+    Config {
+        device: Box<crate::device::DeviceView>,
+    },
     /// A subscription-forwarded event arrived
     Broadcast(Message),
     /// The server says hello, auth complete
@@ -94,9 +96,7 @@ mod tests {
         let mixed = make_send_params(vec!["some-uuid", "*"]);
         assert!(mixed.is_broadcast());
 
-        let specific = make_send_params(vec![
-            "550e8400-e29b-41d4-a716-446655440000",
-        ]);
+        let specific = make_send_params(vec!["550e8400-e29b-41d4-a716-446655440000"]);
         assert!(!specific.is_broadcast());
 
         let empty = make_send_params(vec![]);

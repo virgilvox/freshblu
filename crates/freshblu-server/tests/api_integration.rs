@@ -9,9 +9,8 @@ use std::sync::Arc;
 use tower::ServiceExt;
 
 async fn setup() -> axum::Router {
-    let store: freshblu_store::DynStore = Arc::new(
-        SqliteStore::new("sqlite::memory:").await.unwrap(),
-    );
+    let store: freshblu_store::DynStore =
+        Arc::new(SqliteStore::new("sqlite::memory:").await.unwrap());
     let bus: freshblu_server::DynBus = Arc::new(freshblu_server::local_bus::LocalBus::new());
     let state = AppState {
         store,
@@ -23,8 +22,7 @@ async fn setup() -> axum::Router {
 
 fn basic_auth(uuid: &str, token: &str) -> String {
     use base64::Engine;
-    let encoded =
-        base64::engine::general_purpose::STANDARD.encode(format!("{}:{}", uuid, token));
+    let encoded = base64::engine::general_purpose::STANDARD.encode(format!("{}:{}", uuid, token));
     format!("Basic {}", encoded)
 }
 
@@ -43,7 +41,9 @@ async fn register_device(app: &axum::Router) -> (String, String) {
         .unwrap();
 
     assert_eq!(resp.status(), StatusCode::OK);
-    let body = axum::body::to_bytes(resp.into_body(), usize::MAX).await.unwrap();
+    let body = axum::body::to_bytes(resp.into_body(), usize::MAX)
+        .await
+        .unwrap();
     let v: Value = serde_json::from_slice(&body).unwrap();
     (
         v["uuid"].as_str().unwrap().to_string(),
@@ -71,7 +71,9 @@ async fn register_device_returns_uuid_and_token() {
         .unwrap();
 
     assert_eq!(resp.status(), StatusCode::OK);
-    let body = axum::body::to_bytes(resp.into_body(), usize::MAX).await.unwrap();
+    let body = axum::body::to_bytes(resp.into_body(), usize::MAX)
+        .await
+        .unwrap();
     let v: Value = serde_json::from_slice(&body).unwrap();
     assert!(v["uuid"].is_string(), "uuid should be present");
     assert!(v["token"].is_string(), "token should be present");
@@ -93,7 +95,9 @@ async fn register_device_with_type() {
         .unwrap();
 
     assert_eq!(resp.status(), StatusCode::OK);
-    let body = axum::body::to_bytes(resp.into_body(), usize::MAX).await.unwrap();
+    let body = axum::body::to_bytes(resp.into_body(), usize::MAX)
+        .await
+        .unwrap();
     let v: Value = serde_json::from_slice(&body).unwrap();
     assert_eq!(v["type"], "sensor");
 }
@@ -117,7 +121,9 @@ async fn whoami_returns_device() {
         .unwrap();
 
     assert_eq!(resp.status(), StatusCode::OK);
-    let body = axum::body::to_bytes(resp.into_body(), usize::MAX).await.unwrap();
+    let body = axum::body::to_bytes(resp.into_body(), usize::MAX)
+        .await
+        .unwrap();
     let v: Value = serde_json::from_slice(&body).unwrap();
     assert_eq!(v["uuid"].as_str().unwrap(), uuid);
 }
@@ -206,7 +212,9 @@ async fn get_device_by_uuid() {
         .unwrap();
 
     assert_eq!(resp.status(), StatusCode::OK);
-    let body = axum::body::to_bytes(resp.into_body(), usize::MAX).await.unwrap();
+    let body = axum::body::to_bytes(resp.into_body(), usize::MAX)
+        .await
+        .unwrap();
     let v: Value = serde_json::from_slice(&body).unwrap();
     assert_eq!(v["uuid"].as_str().unwrap(), uuid);
 }
@@ -253,7 +261,9 @@ async fn update_device() {
         .unwrap();
 
     assert_eq!(resp.status(), StatusCode::OK);
-    let body = axum::body::to_bytes(resp.into_body(), usize::MAX).await.unwrap();
+    let body = axum::body::to_bytes(resp.into_body(), usize::MAX)
+        .await
+        .unwrap();
     let v: Value = serde_json::from_slice(&body).unwrap();
     assert_eq!(v["color"], "blue");
 }
@@ -409,7 +419,9 @@ async fn list_subscriptions() {
         .unwrap();
 
     assert_eq!(resp.status(), StatusCode::OK);
-    let body = axum::body::to_bytes(resp.into_body(), usize::MAX).await.unwrap();
+    let body = axum::body::to_bytes(resp.into_body(), usize::MAX)
+        .await
+        .unwrap();
     let v: Value = serde_json::from_slice(&body).unwrap();
     let subs = v.as_array().expect("should be an array");
     assert!(!subs.is_empty(), "subscriptions list should not be empty");
@@ -488,7 +500,9 @@ async fn generate_additional_token() {
         .unwrap();
 
     assert_eq!(resp.status(), StatusCode::OK);
-    let body = axum::body::to_bytes(resp.into_body(), usize::MAX).await.unwrap();
+    let body = axum::body::to_bytes(resp.into_body(), usize::MAX)
+        .await
+        .unwrap();
     let v: Value = serde_json::from_slice(&body).unwrap();
     assert!(v["token"].is_string(), "new token should be returned");
     assert_ne!(
@@ -518,7 +532,9 @@ async fn revoke_token() {
         .await
         .unwrap();
 
-    let body = axum::body::to_bytes(resp.into_body(), usize::MAX).await.unwrap();
+    let body = axum::body::to_bytes(resp.into_body(), usize::MAX)
+        .await
+        .unwrap();
     let v: Value = serde_json::from_slice(&body).unwrap();
     let new_token = v["token"].as_str().unwrap();
 
@@ -558,7 +574,9 @@ async fn status_endpoint() {
         .unwrap();
 
     assert_eq!(resp.status(), StatusCode::OK);
-    let body = axum::body::to_bytes(resp.into_body(), usize::MAX).await.unwrap();
+    let body = axum::body::to_bytes(resp.into_body(), usize::MAX)
+        .await
+        .unwrap();
     let v: Value = serde_json::from_slice(&body).unwrap();
     assert_eq!(v["meshblu"], true);
 }
@@ -589,15 +607,10 @@ async fn v2_routes_work() {
 // ---------------------------------------------------------------------------
 
 async fn setup_with_config(config: ServerConfig) -> axum::Router {
-    let store: freshblu_store::DynStore = Arc::new(
-        SqliteStore::new("sqlite::memory:").await.unwrap(),
-    );
+    let store: freshblu_store::DynStore =
+        Arc::new(SqliteStore::new("sqlite::memory:").await.unwrap());
     let bus: freshblu_server::DynBus = Arc::new(freshblu_server::local_bus::LocalBus::new());
-    let state = AppState {
-        store,
-        bus,
-        config,
-    };
+    let state = AppState { store, bus, config };
     build_router(state)
 }
 
@@ -617,7 +630,9 @@ async fn register_private_device(app: &axum::Router) -> (String, String) {
         .unwrap();
 
     assert_eq!(resp.status(), StatusCode::OK);
-    let body = axum::body::to_bytes(resp.into_body(), usize::MAX).await.unwrap();
+    let body = axum::body::to_bytes(resp.into_body(), usize::MAX)
+        .await
+        .unwrap();
     let v: Value = serde_json::from_slice(&body).unwrap();
     (
         v["uuid"].as_str().unwrap().to_string(),

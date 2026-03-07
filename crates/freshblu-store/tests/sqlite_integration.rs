@@ -207,10 +207,7 @@ async fn generate_and_use_additional_token() {
     let opts = GenerateTokenOptions::default();
     let (_record, new_token) = store.generate_token(&device.uuid, opts).await.unwrap();
 
-    let authed = store
-        .authenticate(&device.uuid, &new_token)
-        .await
-        .unwrap();
+    let authed = store.authenticate(&device.uuid, &new_token).await.unwrap();
     assert!(authed.is_some());
     assert_eq!(authed.unwrap().uuid, device.uuid);
 }

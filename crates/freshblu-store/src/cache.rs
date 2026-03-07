@@ -159,8 +159,7 @@ impl DeviceStore for CachedStore {
         // Cache miss — authenticate against inner store
         let result = self.inner.authenticate(uuid, token).await?;
         if result.is_some() {
-            let _: std::result::Result<(), _> =
-                conn.set_ex::<_, _, ()>(&key, "1", AUTH_TTL).await;
+            let _: std::result::Result<(), _> = conn.set_ex::<_, _, ()>(&key, "1", AUTH_TTL).await;
         }
         Ok(result)
     }
@@ -195,10 +194,7 @@ impl DeviceStore for CachedStore {
         self.inner.list_tokens(uuid).await
     }
 
-    async fn create_subscription(
-        &self,
-        params: &CreateSubscriptionParams,
-    ) -> Result<Subscription> {
+    async fn create_subscription(&self, params: &CreateSubscriptionParams) -> Result<Subscription> {
         let result = self.inner.create_subscription(params).await?;
         self.invalidate_subs(&params.emitter_uuid).await;
         Ok(result)

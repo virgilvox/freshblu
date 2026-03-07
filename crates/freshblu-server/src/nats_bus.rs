@@ -48,9 +48,7 @@ impl NatsBus {
                             NatsEvent::ConfigUpdate { device, .. } => {
                                 DeviceEvent::Config { device }
                             }
-                            NatsEvent::Unregister { uuid } => {
-                                DeviceEvent::Unregistered { uuid }
-                            }
+                            NatsEvent::Unregister { uuid } => DeviceEvent::Unregistered { uuid },
                         };
                         local.deliver(&envelope.target, event);
                     }
@@ -82,9 +80,7 @@ impl MessageBus for NatsBus {
         };
         let subject = freshblu_proto::device_inbox(target);
         let payload = serde_json::to_vec(&nats_event)?;
-        self.client
-            .publish(subject, payload.into())
-            .await?;
+        self.client.publish(subject, payload.into()).await?;
         Ok(())
     }
 
@@ -171,7 +167,12 @@ mod tests {
             meshblu: freshblu_core::device::MeshbluMeta::new(Whitelists::default()),
             properties: HashMap::new(),
         };
-        let result = device_event_to_nats(&target, &DeviceEvent::Config { device: view });
+        let result = device_event_to_nats(
+            &target,
+            &DeviceEvent::Config {
+                device: Box::new(view),
+            },
+        );
         assert!(matches!(result, Some(NatsEvent::ConfigUpdate { .. })));
 
         // Unregistered -> Some(Unregister)

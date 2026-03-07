@@ -3,9 +3,9 @@
 
 mod helpers;
 
-use helpers::*;
 use freshblu_core::device::RegisterParams;
 use futures::SinkExt;
+use helpers::*;
 use serde_json::json;
 use std::collections::HashSet;
 use tokio_tungstenite::tungstenite::Message;
@@ -40,7 +40,10 @@ async fn stress_1000_ws_connections() {
             break;
         }
     }
-    assert!(offline, "all devices should go offline after dropping WS streams");
+    assert!(
+        offline,
+        "all devices should go offline after dropping WS streams"
+    );
 }
 
 #[tokio::test]
@@ -97,9 +100,7 @@ async fn stress_message_flood() {
                 "devices": [target_uuid],
                 "payload": {"n": n}
             });
-            let _ = streams[i]
-                .send(Message::Text(msg.to_string()))
-                .await;
+            let _ = streams[i].send(Message::Text(msg.to_string())).await;
         }
     }
 
@@ -135,7 +136,11 @@ async fn stress_concurrent_registration() {
         uuids.insert(device.uuid);
     }
 
-    assert_eq!(uuids.len(), 500, "all 500 registrations should produce unique UUIDs");
+    assert_eq!(
+        uuids.len(),
+        500,
+        "all 500 registrations should produce unique UUIDs"
+    );
 }
 
 #[tokio::test]

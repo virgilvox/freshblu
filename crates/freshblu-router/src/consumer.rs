@@ -83,4 +83,3 @@ fn extract_uuid_from_subject(subject: &str, prefix: &str, suffix: &str) -> Optio
     };
     Uuid::parse_str(uuid_str).ok()
 }
-

@@ -156,7 +156,11 @@ pub struct PermissionChecker<'a> {
 
 impl<'a> PermissionChecker<'a> {
     pub fn new(device: &'a Whitelists, actor: &'a Uuid, device_uuid: &'a Uuid) -> Self {
-        Self { device, actor, device_uuid }
+        Self {
+            device,
+            actor,
+            device_uuid,
+        }
     }
 
     /// Is actor the device itself?

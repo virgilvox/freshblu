@@ -35,8 +35,8 @@ impl From<FreshBluError> for ApiError {
 
 impl IntoResponse for ApiError {
     fn into_response(self) -> Response {
-        let status = StatusCode::from_u16(self.0.http_status())
-            .unwrap_or(StatusCode::INTERNAL_SERVER_ERROR);
+        let status =
+            StatusCode::from_u16(self.0.http_status()).unwrap_or(StatusCode::INTERNAL_SERVER_ERROR);
         let body = json!({ "error": self.0.to_string() });
         (status, Json(body)).into_response()
     }
@@ -51,7 +51,7 @@ pub struct AppState {
 }
 
 pub fn build_router(state: AppState) -> Router {
-    let app = Router::new()
+    Router::new()
         // Status
         .route("/status", get(handlers::status::status))
         // Authentication
@@ -108,7 +108,5 @@ pub fn build_router(state: AppState) -> Router {
         // Middleware
         .layer(CorsLayer::permissive())
         .layer(TraceLayer::new_for_http())
-        .with_state(state);
-
-    app
+        .with_state(state)
 }

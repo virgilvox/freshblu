@@ -1,5 +1,5 @@
 use criterion::{black_box, criterion_group, criterion_main, Criterion};
-use freshblu_core::auth::{generate_token, hash_token, verify_token, compute_device_hash};
+use freshblu_core::auth::{compute_device_hash, generate_token, hash_token, verify_token};
 use freshblu_core::device::{Device, WhitelistEntry};
 use freshblu_core::message::{DeviceEvent, Message};
 use freshblu_core::permissions::{check_whitelist, Whitelists};

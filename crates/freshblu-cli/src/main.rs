@@ -10,12 +10,11 @@
 ///   freshblu subscribe <emitter-uuid> broadcast.sent
 ///   freshblu token generate <uuid>
 ///   freshblu server                      # Start the server
-
-use anyhow::{bail, Result};
+use anyhow::Result;
 use clap::{Parser, Subcommand};
 use colored::Colorize;
 use serde_json::Value;
-use std::collections::HashMap;
+
 use std::path::PathBuf;
 
 #[derive(Parser)]
@@ -26,7 +25,12 @@ use std::path::PathBuf;
 )]
 struct Cli {
     /// FreshBlu server URL
-    #[arg(short = 'S', long, env = "FRESHBLU_SERVER", default_value = "http://localhost:3000")]
+    #[arg(
+        short = 'S',
+        long,
+        env = "FRESHBLU_SERVER",
+        default_value = "http://localhost:3000"
+    )]
     server: String,
 
     /// Device UUID for auth
@@ -92,9 +96,7 @@ enum Commands {
     },
 
     /// Unregister a device
-    Unregister {
-        uuid: Option<String>,
-    },
+    Unregister { uuid: Option<String> },
 
     /// Search for devices
     Search {
@@ -141,10 +143,7 @@ enum TokenCommands {
         tag: Option<String>,
     },
     /// Revoke a token
-    Revoke {
-        uuid: Option<String>,
-        token: String,
-    },
+    Revoke { uuid: Option<String>, token: String },
 }
 
 /// Saved credentials file (~/.freshblu.json or ./freshblu.json)
@@ -207,10 +206,7 @@ async fn main() -> Result<()> {
         let uuid = creds.uuid.as_ref()?;
         let token = creds.token.as_ref()?;
         let creds_str = format!("{}:{}", uuid, token);
-        Some(format!(
-            "Basic {}",
-            base64_encode(creds_str.as_bytes())
-        ))
+        Some(format!("Basic {}", base64_encode(creds_str.as_bytes())))
     };
 
     match cli.command {
@@ -224,8 +220,8 @@ async fn main() -> Result<()> {
         }
 
         Commands::Register { data, r#type, save } => {
-            let mut body: Value = serde_json::from_str(&data)
-                .unwrap_or_else(|_| serde_json::json!({}));
+            let mut body: Value =
+                serde_json::from_str(&data).unwrap_or_else(|_| serde_json::json!({}));
 
             if let Some(t) = r#type {
                 body["type"] = Value::String(t);
@@ -241,9 +237,15 @@ async fn main() -> Result<()> {
 
             // Save credentials
             let save_path = PathBuf::from(&save);
-            let mut new_creds = Credentials {
-                uuid: result.get("uuid").and_then(|v| v.as_str()).map(|s| s.to_string()),
-                token: result.get("token").and_then(|v| v.as_str()).map(|s| s.to_string()),
+            let new_creds = Credentials {
+                uuid: result
+                    .get("uuid")
+                    .and_then(|v| v.as_str())
+                    .map(|s| s.to_string()),
+                token: result
+                    .get("token")
+                    .and_then(|v| v.as_str())
+                    .map(|s| s.to_string()),
                 server: Some(server.to_string()),
             };
             new_creds.save(&save_path)?;
@@ -332,9 +334,14 @@ async fn main() -> Result<()> {
             print_value(&result, &cli.format);
         }
 
-        Commands::Subscribe { emitter_uuid, subscription_type } => {
+        Commands::Subscribe {
+            emitter_uuid,
+            subscription_type,
+        } => {
             let auth = auth_header().ok_or_else(|| anyhow::anyhow!("No credentials"))?;
-            let subscriber_uuid = creds.uuid.as_ref()
+            let subscriber_uuid = creds
+                .uuid
+                .as_ref()
                 .ok_or_else(|| anyhow::anyhow!("No UUID set"))?;
             let body = serde_json::json!({
                 "emitterUuid": emitter_uuid,
@@ -342,7 +349,10 @@ async fn main() -> Result<()> {
                 "type": subscription_type
             });
             let resp = client
-                .post(format!("{}/devices/{}/subscriptions", server, subscriber_uuid))
+                .post(format!(
+                    "{}/devices/{}/subscriptions",
+                    server, subscriber_uuid
+                ))
                 .header("Authorization", auth)
                 .json(&body)
                 .send()
@@ -352,14 +362,22 @@ async fn main() -> Result<()> {
         }
 
         Commands::Token { cmd } => match cmd {
-            TokenCommands::Generate { uuid, expires_on, tag } => {
+            TokenCommands::Generate {
+                uuid,
+                expires_on,
+                tag,
+            } => {
                 let target = uuid
                     .or_else(|| creds.uuid.clone())
                     .ok_or_else(|| anyhow::anyhow!("UUID required"))?;
                 let auth = auth_header().ok_or_else(|| anyhow::anyhow!("No credentials"))?;
                 let mut opts = serde_json::json!({});
-                if let Some(e) = expires_on { opts["expiresOn"] = e.into(); }
-                if let Some(t) = tag { opts["tag"] = t.into(); }
+                if let Some(e) = expires_on {
+                    opts["expiresOn"] = e.into();
+                }
+                if let Some(t) = tag {
+                    opts["tag"] = t.into();
+                }
                 let resp = client
                     .post(format!("{}/devices/{}/tokens", server, target))
                     .header("Authorization", auth)
@@ -385,23 +403,23 @@ async fn main() -> Result<()> {
         },
 
         Commands::Status => {
-            let resp = client
-                .get(format!("{}/status", server))
-                .send()
-                .await?;
+            let resp = client.get(format!("{}/status", server)).send().await?;
             let result: Value = resp.json().await?;
             print_value(&result, &cli.format);
         }
 
         Commands::Config => {
-            println!("{}", serde_json::to_string_pretty(&serde_json::json!({
-                "server": creds.server,
-                "uuid": creds.uuid,
-                "token": creds.token.as_ref().map(|t| {
-                    // Show only first 8 chars
-                    format!("{}...", &t[..t.len().min(8)])
-                })
-            }))?);
+            println!(
+                "{}",
+                serde_json::to_string_pretty(&serde_json::json!({
+                    "server": creds.server,
+                    "uuid": creds.uuid,
+                    "token": creds.token.as_ref().map(|t| {
+                        // Show only first 8 chars
+                        format!("{}...", &t[..t.len().min(8)])
+                    })
+                }))?
+            );
         }
     }
 
@@ -409,14 +427,21 @@ async fn main() -> Result<()> {
 }
 
 fn base64_encode(input: &[u8]) -> String {
-    use std::fmt::Write;
     const CHARS: &[u8] = b"ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/";
     let mut out = String::new();
     for chunk in input.chunks(3) {
         let b0 = chunk[0] as usize;
-        let b1 = if chunk.len() > 1 { chunk[1] as usize } else { 0 };
-        let b2 = if chunk.len() > 2 { chunk[2] as usize } else { 0 };
-        out.push(CHARS[(b0 >> 2)] as char);
+        let b1 = if chunk.len() > 1 {
+            chunk[1] as usize
+        } else {
+            0
+        };
+        let b2 = if chunk.len() > 2 {
+            chunk[2] as usize
+        } else {
+            0
+        };
+        out.push(CHARS[b0 >> 2] as char);
         out.push(CHARS[((b0 & 3) << 4) | (b1 >> 4)] as char);
         if chunk.len() > 1 {
             out.push(CHARS[((b1 & 15) << 2) | (b2 >> 6)] as char);

@@ -46,7 +46,8 @@ impl MqttAdapter {
                     tokio::task::spawn_blocking(move || {
                         let rt2 = tokio::runtime::Handle::current();
                         rt2.block_on(store.authenticate(&uuid, &password))
-                    }).await,
+                    })
+                    .await,
                     Ok(Ok(Some(_)))
                 )
             })
@@ -118,7 +119,9 @@ impl MqttAdapter {
                             if let Some((target_uuid, event_type)) = parse_mqtt_topic(&topic_str) {
                                 match event_type {
                                     "message" => {
-                                        if let Ok(params) = serde_json::from_slice::<SendMessageParams>(&payload) {
+                                        if let Ok(params) =
+                                            serde_json::from_slice::<SendMessageParams>(&payload)
+                                        {
                                             let msg = freshblu_core::message::Message {
                                                 devices: params.devices.clone(),
                                                 from_uuid: Some(target_uuid),
@@ -128,10 +131,15 @@ impl MqttAdapter {
                                                 extra: params.extra.clone(),
                                             };
                                             for device_id in &params.devices {
-                                                if device_id == "*" { continue; }
+                                                if device_id == "*" {
+                                                    continue;
+                                                }
                                                 if let Ok(dest_uuid) = Uuid::parse_str(device_id) {
                                                     // Check can_message_from permission
-                                                    let allowed = match store.get_device(&dest_uuid).await {
+                                                    let allowed = match store
+                                                        .get_device(&dest_uuid)
+                                                        .await
+                                                    {
                                                         Ok(Some(dest_device)) => {
                                                             let checker = PermissionChecker::new(
                                                                 &dest_device.meshblu.whitelists,
@@ -143,7 +151,12 @@ impl MqttAdapter {
                                                         _ => false,
                                                     };
                                                     if allowed {
-                                                        let _ = bus.publish(&dest_uuid, DeviceEvent::Message(msg.clone())).await;
+                                                        let _ = bus
+                                                            .publish(
+                                                                &dest_uuid,
+                                                                DeviceEvent::Message(msg.clone()),
+                                                            )
+                                                            .await;
                                                     } else {
                                                         warn!("MQTT: dropping unauthorized message from {} to {}", target_uuid, dest_uuid);
                                                     }
@@ -162,7 +175,9 @@ impl MqttAdapter {
                                         }
                                     }
                                     "broadcast" => {
-                                        if let Ok(value) = serde_json::from_slice::<serde_json::Value>(&payload) {
+                                        if let Ok(value) =
+                                            serde_json::from_slice::<serde_json::Value>(&payload)
+                                        {
                                             let msg = freshblu_core::message::Message {
                                                 devices: vec!["*".to_string()],
                                                 from_uuid: Some(target_uuid),

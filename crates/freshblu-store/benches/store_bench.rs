@@ -49,9 +49,7 @@ fn bench_authenticate(c: &mut Criterion) {
         b.to_async(&rt).iter(|| {
             let store = store.clone();
             let token = token.clone();
-            async move {
-                store.authenticate(&device.uuid, &token).await.unwrap()
-            }
+            async move { store.authenticate(&device.uuid, &token).await.unwrap() }
         })
     });
 }

@@ -32,8 +32,8 @@ pub async fn register(
             .and_then(|v| v.to_str().ok())
             .and_then(freshblu_core::auth::parse_basic_auth)
             .is_some();
-        let has_legacy_auth = headers.get("skynet_auth_uuid").is_some()
-            && headers.get("skynet_auth_token").is_some();
+        let has_legacy_auth =
+            headers.get("skynet_auth_uuid").is_some() && headers.get("skynet_auth_token").is_some();
         if !has_auth && !has_legacy_auth {
             return Err(FreshBluError::Forbidden.into());
         }
@@ -42,9 +42,8 @@ pub async fn register(
     let (device, plaintext_token) = state.store.register(params).await?;
 
     // Return device + plaintext token (only time token is visible)
-    let mut resp = serde_json::to_value(&device).map_err(|e| {
-        ApiError::from(FreshBluError::Internal(e.to_string()))
-    })?;
+    let mut resp = serde_json::to_value(&device)
+        .map_err(|e| ApiError::from(FreshBluError::Internal(e.to_string())))?;
     resp["token"] = Value::String(plaintext_token);
 
     Ok(Json(resp))
@@ -58,8 +57,12 @@ pub async fn get_device(
 ) -> ApiResult<DeviceView> {
     // Verify x-meshblu-as permission
     if let Some(ref as_u) = as_uuid {
-        let as_device = state.store.get_device(as_u).await?
-            .ok_or(FreshBluError::NotFound).map_err(ApiError::from)?;
+        let as_device = state
+            .store
+            .get_device(as_u)
+            .await?
+            .ok_or(FreshBluError::NotFound)
+            .map_err(ApiError::from)?;
         let checker = PermissionChecker::new(&as_device.meshblu.whitelists, &actor.uuid, as_u);
         if !checker.can_discover_as() {
             return Err(FreshBluError::Forbidden.into());
@@ -70,16 +73,13 @@ pub async fn get_device(
         .store
         .get_device(&uuid)
         .await?
-        .ok_or(FreshBluError::NotFound).map_err(ApiError::from)?;
+        .ok_or(FreshBluError::NotFound)
+        .map_err(ApiError::from)?;
 
     let effective_actor = as_uuid.unwrap_or(actor.uuid);
 
     // Check permission: can actor discover/view this device?
-    let checker = PermissionChecker::new(
-        &device.meshblu.whitelists,
-        &effective_actor,
-        &uuid,
-    );
+    let checker = PermissionChecker::new(&device.meshblu.whitelists, &effective_actor, &uuid);
 
     if !checker.can_discover_view() {
         return Err(FreshBluError::NotFound.into());
@@ -97,8 +97,12 @@ pub async fn update_device(
 ) -> ApiResult<DeviceView> {
     // Verify x-meshblu-as permission
     if let Some(ref as_u) = as_uuid {
-        let as_device = state.store.get_device(as_u).await?
-            .ok_or(FreshBluError::NotFound).map_err(ApiError::from)?;
+        let as_device = state
+            .store
+            .get_device(as_u)
+            .await?
+            .ok_or(FreshBluError::NotFound)
+            .map_err(ApiError::from)?;
         let checker = PermissionChecker::new(&as_device.meshblu.whitelists, &actor.uuid, as_u);
         if !checker.can_configure_as() {
             return Err(FreshBluError::Forbidden.into());
@@ -109,15 +113,12 @@ pub async fn update_device(
         .store
         .get_device(&uuid)
         .await?
-        .ok_or(FreshBluError::NotFound).map_err(ApiError::from)?;
+        .ok_or(FreshBluError::NotFound)
+        .map_err(ApiError::from)?;
 
     let effective_actor = as_uuid.unwrap_or(actor.uuid);
 
-    let checker = PermissionChecker::new(
-        &device.meshblu.whitelists,
-        &effective_actor,
-        &uuid,
-    );
+    let checker = PermissionChecker::new(&device.meshblu.whitelists, &effective_actor, &uuid);
 
     if !checker.can_configure_update() {
         return Err(FreshBluError::Forbidden.into());
@@ -127,7 +128,9 @@ pub async fn update_device(
     let view = updated.to_view();
 
     // Emit configure event to all configure.sent subscribers
-    let config_event = DeviceEvent::Config { device: view.clone() };
+    let config_event = DeviceEvent::Config {
+        device: Box::new(view.clone()),
+    };
     let subscribers = state
         .store
         .get_subscribers(&uuid, &SubscriptionType::ConfigureSent)
@@ -152,8 +155,12 @@ pub async fn unregister(
 ) -> ApiResult<Value> {
     // Verify x-meshblu-as permission
     if let Some(ref as_u) = as_uuid {
-        let as_device = state.store.get_device(as_u).await?
-            .ok_or(FreshBluError::NotFound).map_err(ApiError::from)?;
+        let as_device = state
+            .store
+            .get_device(as_u)
+            .await?
+            .ok_or(FreshBluError::NotFound)
+            .map_err(ApiError::from)?;
         let checker = PermissionChecker::new(&as_device.meshblu.whitelists, &actor.uuid, as_u);
         if !checker.can_configure_as() {
             return Err(FreshBluError::Forbidden.into());
@@ -164,14 +171,11 @@ pub async fn unregister(
         .store
         .get_device(&uuid)
         .await?
-        .ok_or(FreshBluError::NotFound).map_err(ApiError::from)?;
+        .ok_or(FreshBluError::NotFound)
+        .map_err(ApiError::from)?;
 
     let effective_actor = as_uuid.unwrap_or(actor.uuid);
-    let checker = PermissionChecker::new(
-        &device.meshblu.whitelists,
-        &effective_actor,
-        &uuid,
-    );
+    let checker = PermissionChecker::new(&device.meshblu.whitelists, &effective_actor, &uuid);
 
     if !checker.can_configure_update() {
         return Err(FreshBluError::Forbidden.into());
@@ -202,8 +206,12 @@ pub async fn search(
 ) -> ApiResult<Vec<DeviceView>> {
     // Verify x-meshblu-as permission
     if let Some(ref as_u) = as_uuid {
-        let as_device = state.store.get_device(as_u).await?
-            .ok_or(FreshBluError::NotFound).map_err(ApiError::from)?;
+        let as_device = state
+            .store
+            .get_device(as_u)
+            .await?
+            .ok_or(FreshBluError::NotFound)
+            .map_err(ApiError::from)?;
         let checker = PermissionChecker::new(&as_device.meshblu.whitelists, &actor.uuid, as_u);
         if !checker.can_discover_as() {
             return Err(FreshBluError::Forbidden.into());
@@ -217,11 +225,7 @@ pub async fn search(
     let visible: Vec<DeviceView> = all
         .into_iter()
         .filter(|d| {
-            let checker = PermissionChecker::new(
-                &d.meshblu.whitelists,
-                &effective_actor,
-                &d.uuid,
-            );
+            let checker = PermissionChecker::new(&d.meshblu.whitelists, &effective_actor, &d.uuid);
             checker.can_discover_view()
         })
         .collect();
@@ -238,7 +242,8 @@ pub async fn whoami(
         .store
         .get_device(&actor.uuid)
         .await?
-        .ok_or(FreshBluError::NotFound).map_err(ApiError::from)?;
+        .ok_or(FreshBluError::NotFound)
+        .map_err(ApiError::from)?;
     Ok(Json(device.to_view()))
 }
 
@@ -253,7 +258,8 @@ pub async fn my_devices(
         .store
         .get_device(&actor.uuid)
         .await?
-        .ok_or(FreshBluError::NotFound).map_err(ApiError::from)?;
+        .ok_or(FreshBluError::NotFound)
+        .map_err(ApiError::from)?;
     Ok(Json(vec![device.to_view()]))
 }
 

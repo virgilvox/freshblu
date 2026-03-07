@@ -1,12 +1,12 @@
 mod helpers;
 
-use helpers::*;
+use axum::http::{Method, StatusCode};
 use freshblu_core::subscription::{CreateSubscriptionParams, SubscriptionType};
 use freshblu_server::build_router;
 use futures::SinkExt;
+use helpers::*;
 use serde_json::json;
 use tokio_tungstenite::tungstenite::Message;
-use axum::http::{Method, StatusCode};
 
 // ---------------------------------------------------------------------------
 // 1. HTTP -> WS delivery: A sends HTTP POST /messages to B, B receives via WS
@@ -39,7 +39,9 @@ async fn http_to_ws_delivery() {
     assert_eq!(resp.status(), StatusCode::OK);
 
     // B should receive the message on its WS stream
-    let msg = recv_json(&mut ws_b).await.expect("B should receive a message");
+    let msg = recv_json(&mut ws_b)
+        .await
+        .expect("B should receive a message");
     assert_eq!(msg["event"], "message");
     assert_eq!(msg["payload"]["hello"], "http");
     assert_eq!(msg["fromUuid"], uuid_a);
@@ -78,7 +80,10 @@ async fn http_to_ws_denied() {
 
     // B should NOT receive anything (recv_json times out after 2s)
     let msg = recv_json(&mut ws_b).await;
-    assert!(msg.is_none(), "private device B should not receive the message");
+    assert!(
+        msg.is_none(),
+        "private device B should not receive the message"
+    );
 }
 
 // ---------------------------------------------------------------------------
@@ -104,7 +109,9 @@ async fn ws_to_ws_delivery() {
     ws_a.send(Message::Text(msg.to_string())).await.unwrap();
 
     // B should receive the message
-    let received = recv_json(&mut ws_b).await.expect("B should receive a WS message");
+    let received = recv_json(&mut ws_b)
+        .await
+        .expect("B should receive a WS message");
     assert_eq!(received["event"], "message");
     assert_eq!(received["payload"]["hello"], "ws");
     assert_eq!(received["fromUuid"], uuid_a);
@@ -163,16 +170,22 @@ async fn broadcast_fanout_3_subscribers() {
     assert_eq!(resp.status(), StatusCode::OK);
 
     // All 3 subscribers should receive the broadcast
-    let m1 = recv_json(&mut ws_s1).await.expect("S1 should receive broadcast");
+    let m1 = recv_json(&mut ws_s1)
+        .await
+        .expect("S1 should receive broadcast");
     assert_eq!(m1["event"], "broadcast");
     assert_eq!(m1["payload"]["broadcast"], true);
     assert_eq!(m1["fromUuid"], uuid_e);
 
-    let m2 = recv_json(&mut ws_s2).await.expect("S2 should receive broadcast");
+    let m2 = recv_json(&mut ws_s2)
+        .await
+        .expect("S2 should receive broadcast");
     assert_eq!(m2["event"], "broadcast");
     assert_eq!(m2["payload"]["broadcast"], true);
 
-    let m3 = recv_json(&mut ws_s3).await.expect("S3 should receive broadcast");
+    let m3 = recv_json(&mut ws_s3)
+        .await
+        .expect("S3 should receive broadcast");
     assert_eq!(m3["event"], "broadcast");
     assert_eq!(m3["payload"]["broadcast"], true);
 }
@@ -221,7 +234,9 @@ async fn message_sent_subscriber_notified() {
     assert_eq!(resp.status(), StatusCode::OK);
 
     // C should receive the message.sent notification
-    let msg = recv_json(&mut ws_c).await.expect("C should be notified of A's message.sent");
+    let msg = recv_json(&mut ws_c)
+        .await
+        .expect("C should be notified of A's message.sent");
     assert_eq!(msg["event"], "message");
     assert_eq!(msg["payload"]["data"], "from_a");
     assert_eq!(msg["fromUuid"], uuid_a);
@@ -271,7 +286,9 @@ async fn message_received_subscriber_notified() {
     assert_eq!(resp.status(), StatusCode::OK);
 
     // C should receive the message.received notification
-    let msg = recv_json(&mut ws_c).await.expect("C should be notified of B's message.received");
+    let msg = recv_json(&mut ws_c)
+        .await
+        .expect("C should be notified of B's message.received");
     assert_eq!(msg["event"], "message");
     assert_eq!(msg["payload"]["data"], "for_b");
     assert_eq!(msg["fromUuid"], uuid_a);
@@ -317,9 +334,14 @@ async fn configure_sent_on_update() {
     assert_eq!(resp.status(), StatusCode::OK);
 
     // C should receive a config event
-    let msg = recv_json(&mut ws_c).await.expect("C should be notified of A's configure.sent");
+    let msg = recv_json(&mut ws_c)
+        .await
+        .expect("C should be notified of A's configure.sent");
     assert_eq!(msg["event"], "config");
-    assert!(msg["device"].is_object(), "config event should contain device data");
+    assert!(
+        msg["device"].is_object(),
+        "config event should contain device data"
+    );
     assert_eq!(msg["device"]["uuid"], uuid_a);
 }
 
@@ -363,7 +385,9 @@ async fn unregister_sent_on_delete() {
     assert_eq!(resp.status(), StatusCode::OK);
 
     // C should receive an unregistered event
-    let msg = recv_json(&mut ws_c).await.expect("C should be notified of A's unregister.sent");
+    let msg = recv_json(&mut ws_c)
+        .await
+        .expect("C should be notified of A's unregister.sent");
     assert_eq!(msg["event"], "unregistered");
     assert_eq!(msg["uuid"], uuid_a);
 }
@@ -403,7 +427,9 @@ async fn configure_sent_on_ws_update() {
     ws_a.send(Message::Text(update.to_string())).await.unwrap();
 
     // C should receive a config event (fan out from WS Update path)
-    let msg = recv_json(&mut ws_c).await.expect("C should be notified of A's configure.sent via WS");
+    let msg = recv_json(&mut ws_c)
+        .await
+        .expect("C should be notified of A's configure.sent via WS");
     assert_eq!(msg["event"], "config");
     assert!(msg["device"].is_object());
     assert_eq!(msg["device"]["uuid"], uuid_a);
@@ -448,7 +474,9 @@ async fn partial_delivery_some_allowed_some_denied() {
     assert_eq!(resp.status(), StatusCode::OK);
 
     // T1 should receive
-    let m1 = recv_json(&mut ws_t1).await.expect("T1 (open) should receive message");
+    let m1 = recv_json(&mut ws_t1)
+        .await
+        .expect("T1 (open) should receive message");
     assert_eq!(m1["event"], "message");
     assert_eq!(m1["payload"]["test"], "partial");
 
@@ -457,7 +485,9 @@ async fn partial_delivery_some_allowed_some_denied() {
     assert!(m2.is_none(), "T2 (private) should not receive message");
 
     // T3 should receive
-    let m3 = recv_json(&mut ws_t3).await.expect("T3 (open) should receive message");
+    let m3 = recv_json(&mut ws_t3)
+        .await
+        .expect("T3 (open) should receive message");
     assert_eq!(m3["event"], "message");
     assert_eq!(m3["payload"]["test"], "partial");
 }

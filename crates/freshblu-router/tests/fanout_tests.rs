@@ -40,7 +40,10 @@ fn subject_builders_configure() {
 
 #[test]
 fn subject_builders_delivery() {
-    assert_eq!(freshblu_proto::delivery("pod-42"), "freshblu.delivery.pod-42");
+    assert_eq!(
+        freshblu_proto::delivery("pod-42"),
+        "freshblu.delivery.pod-42"
+    );
 }
 
 #[test]
@@ -54,7 +57,10 @@ fn subject_builders_presence() {
 
 #[test]
 fn subject_builders_system_unregister() {
-    assert_eq!(freshblu_proto::system_unregister(), "freshblu.system.unregister");
+    assert_eq!(
+        freshblu_proto::system_unregister(),
+        "freshblu.system.unregister"
+    );
 }
 
 // ---------------------------------------------------------------------------
@@ -131,7 +137,7 @@ fn envelope_roundtrip_config_update() {
         target: uuid,
         event: NatsEvent::ConfigUpdate {
             uuid,
-            device: make_device_view(uuid),
+            device: Box::new(make_device_view(uuid)),
         },
         source_pod: "pod-3".into(),
     };

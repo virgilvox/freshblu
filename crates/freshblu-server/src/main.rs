@@ -8,9 +8,11 @@ async fn main() -> anyhow::Result<()> {
     let config = ServerConfig::from_env();
 
     tracing_subscriber::registry()
-        .with(EnvFilter::try_from_default_env().unwrap_or_else(|_| {
-            format!("freshblu={},tower_http=debug", config.log_level).into()
-        }))
+        .with(
+            EnvFilter::try_from_default_env().unwrap_or_else(|_| {
+                format!("freshblu={},tower_http=debug", config.log_level).into()
+            }),
+        )
         .with(tracing_subscriber::fmt::layer())
         .init();
 
@@ -21,9 +23,7 @@ async fn main() -> anyhow::Result<()> {
     let store: freshblu_store::DynStore = if config.database_url.starts_with("postgres") {
         #[cfg(feature = "postgres")]
         {
-            Arc::new(
-                freshblu_store::postgres::PostgresStore::new(&config.database_url).await?,
-            )
+            Arc::new(freshblu_store::postgres::PostgresStore::new(&config.database_url).await?)
         }
         #[cfg(not(feature = "postgres"))]
         {
@@ -32,9 +32,7 @@ async fn main() -> anyhow::Result<()> {
     } else {
         #[cfg(feature = "sqlite")]
         {
-            Arc::new(
-                freshblu_store::sqlite::SqliteStore::new(&config.database_url).await?,
-            )
+            Arc::new(freshblu_store::sqlite::SqliteStore::new(&config.database_url).await?)
         }
         #[cfg(not(feature = "sqlite"))]
         {
@@ -54,9 +52,7 @@ async fn main() -> anyhow::Result<()> {
     // Initialize message bus
     let bus: DynBus = if let Some(ref nats_url) = config.nats_url {
         tracing::info!("NATS bus enabled: {} (pod: {})", nats_url, config.pod_id);
-        Arc::new(
-            freshblu_server::nats_bus::NatsBus::new(nats_url, config.pod_id.clone()).await?,
-        )
+        Arc::new(freshblu_server::nats_bus::NatsBus::new(nats_url, config.pod_id.clone()).await?)
     } else {
         tracing::info!("Using local in-memory message bus (single-process mode)");
         Arc::new(freshblu_server::local_bus::LocalBus::new())
@@ -82,8 +78,13 @@ async fn main() -> anyhow::Result<()> {
     let listener = tokio::net::TcpListener::bind(&addr).await?;
 
     tracing::info!("HTTP/WebSocket listening on http://{}", addr);
-    tracing::info!("WebSocket endpoint: ws://{}:{}/ws", "localhost", config.http_port);
-    tracing::info!(r#"
+    tracing::info!(
+        "WebSocket endpoint: ws://{}:{}/ws",
+        "localhost",
+        config.http_port
+    );
+    tracing::info!(
+        r#"
  _____              _     ____  _
 |  ___| __ ___  ___| |__ | __ )| |_   _
 | |_ | '__/ _ \/ __| '_ \|  _ \| | | | |
@@ -91,7 +92,8 @@ async fn main() -> anyhow::Result<()> {
 |_|  |_|  \___||___/_| |_|____/|_|\__,_|
 
 Meshblu-compatible IoT messaging platform
-"#);
+"#
+    );
 
     axum::serve(listener, router).await?;
     Ok(())

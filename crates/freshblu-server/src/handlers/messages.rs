@@ -28,12 +28,9 @@ pub async fn send_message(
             .store
             .get_device(as_u)
             .await?
-            .ok_or(FreshBluError::NotFound).map_err(ApiError::from)?;
-        let checker = PermissionChecker::new(
-            &target.meshblu.whitelists,
-            &actor.uuid,
-            as_u,
-        );
+            .ok_or(FreshBluError::NotFound)
+            .map_err(ApiError::from)?;
+        let checker = PermissionChecker::new(&target.meshblu.whitelists, &actor.uuid, as_u);
         if !checker.can_message_as() {
             return Err(FreshBluError::Forbidden.into());
         }

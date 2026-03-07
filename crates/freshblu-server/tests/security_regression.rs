@@ -5,13 +5,13 @@
 
 mod helpers;
 
-use helpers::*;
+use axum::http::{Method, StatusCode};
 use freshblu_core::device::WhitelistEntry;
 use freshblu_core::permissions::*;
 use futures::SinkExt;
+use helpers::*;
 use serde_json::{json, Value};
 use tokio_tungstenite::tungstenite::Message;
-use axum::http::{Method, StatusCode};
 use uuid::Uuid;
 
 // ---------------------------------------------------------------------------
@@ -73,7 +73,10 @@ async fn ws_message_permission_enforced() {
 
     // B2 should receive the message
     let received = recv_json(&mut ws_b2).await;
-    assert!(received.is_some(), "whitelisted device B2 should receive the message");
+    assert!(
+        received.is_some(),
+        "whitelisted device B2 should receive the message"
+    );
     let received = received.unwrap();
     assert_eq!(received["event"], "message");
     assert_eq!(received["payload"]["test"], 2);
@@ -142,7 +145,11 @@ async fn token_expiration_enforced_http_and_ws() {
         expires_on: Some(0),
         tag: None,
     };
-    let (_record, expired_token) = state.store.generate_token(&device_uuid, opts).await.unwrap();
+    let (_record, expired_token) = state
+        .store
+        .generate_token(&device_uuid, opts)
+        .await
+        .unwrap();
 
     // HTTP: POST /authenticate with expired token should fail.
     // Build a router that shares the same store so the expired token is visible.
@@ -176,7 +183,9 @@ async fn token_expiration_enforced_http_and_ws() {
     });
     ws.send(Message::Text(identity.to_string())).await.unwrap();
 
-    let resp = recv_json(&mut ws).await.expect("expected notReady response");
+    let resp = recv_json(&mut ws)
+        .await
+        .expect("expected notReady response");
     assert_eq!(
         resp["event"], "notReady",
         "expired token should yield notReady on WS"
@@ -266,12 +275,7 @@ async fn x_meshblu_as_denied_all_endpoints() {
     };
 
     // GET /devices/B
-    let resp = request_with_as(
-        Method::GET,
-        format!("/devices/{}", uuid_b),
-        None,
-    )
-    .await;
+    let resp = request_with_as(Method::GET, format!("/devices/{}", uuid_b), None).await;
     assert_eq!(
         resp.status(),
         StatusCode::FORBIDDEN,
@@ -292,12 +296,7 @@ async fn x_meshblu_as_denied_all_endpoints() {
     );
 
     // DELETE /devices/B
-    let resp = request_with_as(
-        Method::DELETE,
-        format!("/devices/{}", uuid_b),
-        None,
-    )
-    .await;
+    let resp = request_with_as(Method::DELETE, format!("/devices/{}", uuid_b), None).await;
     assert_eq!(
         resp.status(),
         StatusCode::FORBIDDEN,
@@ -321,12 +320,7 @@ async fn x_meshblu_as_denied_all_endpoints() {
     );
 
     // POST /devices/search with x-meshblu-as: B
-    let resp = request_with_as(
-        Method::POST,
-        "/devices/search".to_string(),
-        Some(json!({})),
-    )
-    .await;
+    let resp = request_with_as(Method::POST, "/devices/search".to_string(), Some(json!({}))).await;
     assert_eq!(
         resp.status(),
         StatusCode::FORBIDDEN,

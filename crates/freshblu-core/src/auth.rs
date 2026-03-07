@@ -69,8 +69,7 @@ mod tests {
     #[test]
     fn test_basic_auth_parse() {
         use base64::Engine;
-        let creds = base64::engine::general_purpose::STANDARD
-            .encode("my-uuid:my-token");
+        let creds = base64::engine::general_purpose::STANDARD.encode("my-uuid:my-token");
         let (u, t) = parse_basic_auth(&format!("Basic {}", creds)).unwrap();
         assert_eq!(u, "my-uuid");
         assert_eq!(t, "my-token");

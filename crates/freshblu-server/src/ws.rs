@@ -11,12 +11,12 @@ use axum::{
     },
     response::Response,
 };
-use futures::{SinkExt, StreamExt};
 use freshblu_core::{
     device::RegisterParams,
     message::{DeviceEvent, SendMessageParams},
     subscription::{CreateSubscriptionParams, SubscriptionType},
 };
+use futures::{SinkExt, StreamExt};
 use serde::Deserialize;
 use serde_json::Value;
 use std::collections::HashMap;
@@ -28,10 +28,7 @@ use freshblu_core::permissions::PermissionChecker;
 use crate::metrics::WS_CONNECTIONS;
 use crate::AppState;
 
-pub async fn ws_handler(
-    ws: WebSocketUpgrade,
-    State(state): State<AppState>,
-) -> Response {
+pub async fn ws_handler(ws: WebSocketUpgrade, State(state): State<AppState>) -> Response {
     ws.on_upgrade(move |socket| handle_socket(socket, state))
 }
 
@@ -62,7 +59,7 @@ enum ClientMessage {
     /// Whoami
     Whoami,
     /// Register a new device
-    Register(RegisterParams),
+    Register(Box<RegisterParams>),
     /// Unregister
     Unregister { uuid: Uuid },
     /// Ping
@@ -109,7 +106,10 @@ async fn handle_socket(socket: WebSocket, state: AppState) {
         };
 
         match client_msg {
-            ClientMessage::Identity { uuid: uuid_str, token } => {
+            ClientMessage::Identity {
+                uuid: uuid_str,
+                token,
+            } => {
                 let uuid = match Uuid::parse_str(&uuid_str) {
                     Ok(u) => u,
                     Err(_) => {
@@ -135,9 +135,7 @@ async fn handle_socket(socket: WebSocket, state: AppState) {
                             "fromUuid": uuid,
                             "meshblu": device.meshblu,
                         });
-                        let _ = sender
-                            .send(Message::Text(ready.to_string()))
-                            .await;
+                        let _ = sender.send(Message::Text(ready.to_string())).await;
                         WS_CONNECTIONS.inc();
                         let rx = state.bus.connect(uuid);
                         break (uuid, rx);
@@ -256,7 +254,7 @@ async fn handle_socket(socket: WebSocket, state: AppState) {
                     ClientMessage::Update(properties) => {
                         if let Ok(updated) = state.store.update_device(&device_uuid, properties).await {
                             let view = updated.to_view();
-                            let config_event = DeviceEvent::Config { device: view };
+                            let config_event = DeviceEvent::Config { device: Box::new(view) };
                             // Fan out to configure.sent subscribers
                             let subscribers = state.store
                                 .get_subscribers(&device_uuid, &SubscriptionType::ConfigureSent)
@@ -269,7 +267,7 @@ async fn handle_socket(socket: WebSocket, state: AppState) {
                     }
 
                     ClientMessage::Register(params) => {
-                        match state.store.register(params).await {
+                        match state.store.register(*params).await {
                             Ok((device, token)) => {
                                 let json = serde_json::json!({
                                     "event": "registered",
@@ -368,7 +366,10 @@ async fn handle_ws_message(state: &AppState, actor_uuid: Uuid, params: SendMessa
                 _ => false,
             };
             if allowed {
-                let _ = state.bus.publish(&target_uuid, DeviceEvent::Message(msg.clone())).await;
+                let _ = state
+                    .bus
+                    .publish(&target_uuid, DeviceEvent::Message(msg.clone()))
+                    .await;
             }
         }
     }
@@ -380,7 +381,10 @@ async fn handle_ws_message(state: &AppState, actor_uuid: Uuid, params: SendMessa
             .await
             .unwrap_or_default();
         for sub_uuid in subs {
-            let _ = state.bus.publish(&sub_uuid, DeviceEvent::Broadcast(msg.clone())).await;
+            let _ = state
+                .bus
+                .publish(&sub_uuid, DeviceEvent::Broadcast(msg.clone()))
+                .await;
         }
     }
 }

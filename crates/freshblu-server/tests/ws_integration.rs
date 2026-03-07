@@ -7,9 +7,8 @@ use serde_json::{json, Value};
 use tokio_tungstenite::{connect_async, tungstenite::Message};
 
 async fn setup() -> (String, AppState) {
-    let store: freshblu_store::DynStore = Arc::new(
-        SqliteStore::new("sqlite::memory:").await.unwrap(),
-    );
+    let store: freshblu_store::DynStore =
+        Arc::new(SqliteStore::new("sqlite::memory:").await.unwrap());
     let bus: freshblu_server::DynBus = Arc::new(freshblu_server::local_bus::LocalBus::new());
     let state = AppState {
         store,
@@ -52,8 +51,7 @@ async fn connect_and_auth(
     ws_url: &str,
     uuid: &str,
     token: &str,
-) -> tokio_tungstenite::WebSocketStream<tokio_tungstenite::MaybeTlsStream<tokio::net::TcpStream>>
-{
+) -> tokio_tungstenite::WebSocketStream<tokio_tungstenite::MaybeTlsStream<tokio::net::TcpStream>> {
     let (mut ws, _) = connect_async(ws_url).await.expect("failed to connect");
 
     let identity = json!({
@@ -103,7 +101,9 @@ async fn ws_identity_wrong_token() {
     });
     ws.send(Message::Text(identity.to_string())).await.unwrap();
 
-    let resp = recv_json(&mut ws).await.expect("expected notReady response");
+    let resp = recv_json(&mut ws)
+        .await
+        .expect("expected notReady response");
     assert_eq!(resp["event"], "notReady");
 }
 
@@ -119,7 +119,10 @@ async fn ws_whoami() {
 
     let resp = recv_json(&mut ws).await.expect("expected whoami response");
     assert_eq!(resp["event"], "whoami");
-    assert!(resp["device"].is_object(), "whoami should contain device data");
+    assert!(
+        resp["device"].is_object(),
+        "whoami should contain device data"
+    );
     assert_eq!(resp["device"]["uuid"], uuid);
 }
 
@@ -162,7 +165,10 @@ async fn ws_receive_message() {
         metadata: None,
         extra: std::collections::HashMap::new(),
     };
-    let _ = state.bus.publish(&device_a_uuid, DeviceEvent::Message(msg)).await;
+    let _ = state
+        .bus
+        .publish(&device_a_uuid, DeviceEvent::Message(msg))
+        .await;
 
     // Device A should receive the message on its WS
     let resp = recv_json(&mut ws_a).await.expect("expected message event");
@@ -184,11 +190,15 @@ async fn ws_receive_config_update() {
     let device_uuid: uuid::Uuid = uuid.parse().unwrap();
     let mut props = std::collections::HashMap::new();
     props.insert("name".to_string(), json!("updated-device"));
-    let updated = state.store.update_device(&device_uuid, props).await.unwrap();
+    let updated = state
+        .store
+        .update_device(&device_uuid, props)
+        .await
+        .unwrap();
 
     // Deliver config event through bus
     let config_event = DeviceEvent::Config {
-        device: updated.to_view(),
+        device: Box::new(updated.to_view()),
     };
     let _ = state.bus.publish(&device_uuid, config_event).await;
 
@@ -226,11 +236,17 @@ async fn ws_disconnect_sets_offline() {
             break;
         }
     }
-    assert!(went_offline, "device should be offline in bus after WS disconnect");
+    assert!(
+        went_offline,
+        "device should be offline in bus after WS disconnect"
+    );
 
     // Also verify the store reflects offline status
     let device = state.store.get_device(&device_uuid).await.unwrap().unwrap();
-    assert!(!device.online, "device should be offline in store after WS disconnect");
+    assert!(
+        !device.online,
+        "device should be offline in store after WS disconnect"
+    );
 }
 
 #[tokio::test]
@@ -259,7 +275,9 @@ async fn ws_subscribe_permission_denied() {
         "emitterUuid": device_b.uuid.to_string(),
         "type": "broadcast.sent",
     });
-    ws_a.send(Message::Text(subscribe.to_string())).await.unwrap();
+    ws_a.send(Message::Text(subscribe.to_string()))
+        .await
+        .unwrap();
 
     // Should receive an error event
     let resp = recv_json(&mut ws_a).await.expect("expected error response");

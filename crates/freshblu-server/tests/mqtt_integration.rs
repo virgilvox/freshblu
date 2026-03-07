@@ -81,8 +81,10 @@ fn mqtt_sender_identity_contract() {
     let client_uuid = Uuid::new_v4();
     let spoofed_topic = format!("{}/message", Uuid::new_v4());
     let (topic_uuid, _) = parse_mqtt_topic(&spoofed_topic).unwrap();
-    assert_ne!(topic_uuid, client_uuid,
-        "KNOWN LIMITATION: bridge cannot currently validate topic UUID against client identity");
+    assert_ne!(
+        topic_uuid, client_uuid,
+        "KNOWN LIMITATION: bridge cannot currently validate topic UUID against client identity"
+    );
 }
 
 // ---------------------------------------------------------------------------
@@ -98,11 +100,11 @@ mod broker_tests {
     use freshblu_core::subscription::{CreateSubscriptionParams, SubscriptionType};
     use freshblu_server::mqtt::MqttAdapter;
     use freshblu_server::AppState;
+    use futures::SinkExt;
     use rumqttc::{AsyncClient, MqttOptions, QoS};
     use serde_json::json;
     use std::time::Duration;
     use tokio_tungstenite::tungstenite::Message;
-    use futures::SinkExt;
 
     async fn start_mqtt(state: &AppState) -> u16 {
         let port = portpicker::pick_unused_port().unwrap();
@@ -132,8 +134,11 @@ mod broker_tests {
             .expect("connection failed");
 
         if let rumqttc::Event::Incoming(rumqttc::Packet::ConnAck(ack)) = event {
-            assert_eq!(ack.code, rumqttc::ConnectReturnCode::Success,
-                "valid credentials should produce successful ConnAck");
+            assert_eq!(
+                ack.code,
+                rumqttc::ConnectReturnCode::Success,
+                "valid credentials should produce successful ConnAck"
+            );
         } else {
             panic!("expected ConnAck, got {:?}", event);
         }
@@ -158,8 +163,11 @@ mod broker_tests {
         match result {
             Ok(Err(_)) => {} // Connection refused — expected
             Ok(Ok(rumqttc::Event::Incoming(rumqttc::Packet::ConnAck(ack)))) => {
-                assert_ne!(ack.code, rumqttc::ConnectReturnCode::Success,
-                    "invalid credentials should not produce successful ConnAck");
+                assert_ne!(
+                    ack.code,
+                    rumqttc::ConnectReturnCode::Success,
+                    "invalid credentials should not produce successful ConnAck"
+                );
             }
             _ => {} // Timeout or other error — also acceptable for rejection
         }
@@ -204,7 +212,9 @@ mod broker_tests {
         let _ = tokio::time::timeout(Duration::from_secs(2), eventloop.poll()).await;
 
         // WS target should receive the message
-        let msg = recv_json(&mut ws_target).await.expect("WS target should receive MQTT message");
+        let msg = recv_json(&mut ws_target)
+            .await
+            .expect("WS target should receive MQTT message");
         assert_eq!(msg["event"], "message");
         assert_eq!(msg["payload"]["from"], "mqtt");
 
@@ -248,7 +258,10 @@ mod broker_tests {
 
         // WS target should NOT receive (permission denied)
         let msg = recv_json(&mut ws_target).await;
-        assert!(msg.is_none(), "private device should not receive MQTT message");
+        assert!(
+            msg.is_none(),
+            "private device should not receive MQTT message"
+        );
 
         client.disconnect().await.ok();
     }
@@ -296,7 +309,9 @@ mod broker_tests {
         let _ = tokio::time::timeout(Duration::from_secs(2), eventloop.poll()).await;
 
         // Subscriber should receive the broadcast
-        let msg = recv_json(&mut ws_sub).await.expect("subscriber should receive MQTT broadcast");
+        let msg = recv_json(&mut ws_sub)
+            .await
+            .expect("subscriber should receive MQTT broadcast");
         assert_eq!(msg["event"], "broadcast");
         assert_eq!(msg["payload"]["broadcast_data"], true);
 

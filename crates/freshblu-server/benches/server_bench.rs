@@ -1,7 +1,7 @@
 use criterion::{criterion_group, criterion_main, Criterion};
 use freshblu_core::message::{DeviceEvent, Message};
-use freshblu_server::local_bus::LocalBus;
 use freshblu_server::bus::MessageBus;
+use freshblu_server::local_bus::LocalBus;
 use serde_json::json;
 use std::collections::HashMap;
 use std::sync::Arc;
@@ -36,9 +36,7 @@ fn bench_message_delivery_single(c: &mut Criterion) {
         b.to_async(&rt).iter(|| {
             let event = event.clone();
             let bus = bus.clone();
-            async move {
-                bus.publish(&uuid, event).await.unwrap()
-            }
+            async move { bus.publish(&uuid, event).await.unwrap() }
         })
     });
 }
@@ -47,11 +45,13 @@ fn bench_message_fanout_100(c: &mut Criterion) {
     let rt = make_runtime();
     let bus = Arc::new(LocalBus::new());
 
-    let uuids: Vec<Uuid> = (0..100).map(|_| {
-        let u = Uuid::new_v4();
-        let _rx = bus.connect(u);
-        u
-    }).collect();
+    let uuids: Vec<Uuid> = (0..100)
+        .map(|_| {
+            let u = Uuid::new_v4();
+            let _rx = bus.connect(u);
+            u
+        })
+        .collect();
 
     let from = Uuid::new_v4();
     let event = DeviceEvent::Message(make_msg(from));
@@ -61,9 +61,7 @@ fn bench_message_fanout_100(c: &mut Criterion) {
             let event = event.clone();
             let bus = bus.clone();
             let uuids = uuids.clone();
-            async move {
-                bus.publish_many(&uuids, event).await.unwrap()
-            }
+            async move { bus.publish_many(&uuids, event).await.unwrap() }
         })
     });
 }
@@ -72,11 +70,13 @@ fn bench_message_fanout_10000(c: &mut Criterion) {
     let rt = make_runtime();
     let bus = Arc::new(LocalBus::new());
 
-    let uuids: Vec<Uuid> = (0..10_000).map(|_| {
-        let u = Uuid::new_v4();
-        let _rx = bus.connect(u);
-        u
-    }).collect();
+    let uuids: Vec<Uuid> = (0..10_000)
+        .map(|_| {
+            let u = Uuid::new_v4();
+            let _rx = bus.connect(u);
+            u
+        })
+        .collect();
 
     let from = Uuid::new_v4();
     let event = DeviceEvent::Message(make_msg(from));
@@ -86,9 +86,7 @@ fn bench_message_fanout_10000(c: &mut Criterion) {
             let event = event.clone();
             let bus = bus.clone();
             let uuids = uuids.clone();
-            async move {
-                bus.publish_many(&uuids, event).await.unwrap()
-            }
+            async move { bus.publish_many(&uuids, event).await.unwrap() }
         })
     });
 }

@@ -77,7 +77,14 @@ async fn discover_view_allowed() {
     let (target_uuid, _) = register_device_with_whitelists(&state, wl).await;
 
     let auth = basic_auth(&actor_uuid, &actor_token);
-    let resp = http_request(&app, Method::GET, &format!("/devices/{}", target_uuid), Some(&auth), None).await;
+    let resp = http_request(
+        &app,
+        Method::GET,
+        &format!("/devices/{}", target_uuid),
+        Some(&auth),
+        None,
+    )
+    .await;
     assert_eq!(resp.status(), StatusCode::OK);
 }
 
@@ -91,7 +98,14 @@ async fn discover_view_denied() {
     let (target_uuid, _) = register_device_with_whitelists(&state, wl).await;
 
     let auth = basic_auth(&actor_uuid, &actor_token);
-    let resp = http_request(&app, Method::GET, &format!("/devices/{}", target_uuid), Some(&auth), None).await;
+    let resp = http_request(
+        &app,
+        Method::GET,
+        &format!("/devices/{}", target_uuid),
+        Some(&auth),
+        None,
+    )
+    .await;
     // Meshblu returns 404 (not 403) for discover denial
     assert_eq!(resp.status(), StatusCode::NOT_FOUND);
 }
@@ -104,7 +118,14 @@ async fn discover_view_self() {
     let (uuid, token) = register_device_with_whitelists(&state, wl).await;
 
     let auth = basic_auth(&uuid, &token);
-    let resp = http_request(&app, Method::GET, &format!("/devices/{}", uuid), Some(&auth), None).await;
+    let resp = http_request(
+        &app,
+        Method::GET,
+        &format!("/devices/{}", uuid),
+        Some(&auth),
+        None,
+    )
+    .await;
     assert_eq!(resp.status(), StatusCode::OK);
 }
 
@@ -119,7 +140,14 @@ async fn discover_view_wildcard() {
     let (target_uuid, _) = register_device_with_whitelists(&state, wl).await;
 
     let auth = basic_auth(&actor_uuid, &actor_token);
-    let resp = http_request(&app, Method::GET, &format!("/devices/{}", target_uuid), Some(&auth), None).await;
+    let resp = http_request(
+        &app,
+        Method::GET,
+        &format!("/devices/{}", target_uuid),
+        Some(&auth),
+        None,
+    )
+    .await;
     assert_eq!(resp.status(), StatusCode::OK);
 }
 
@@ -135,7 +163,14 @@ async fn discover_view_empty() {
     let (target_uuid, _) = register_device_with_whitelists(&state, wl).await;
 
     let auth = basic_auth(&actor_uuid, &actor_token);
-    let resp = http_request(&app, Method::GET, &format!("/devices/{}", target_uuid), Some(&auth), None).await;
+    let resp = http_request(
+        &app,
+        Method::GET,
+        &format!("/devices/{}", target_uuid),
+        Some(&auth),
+        None,
+    )
+    .await;
     assert_eq!(resp.status(), StatusCode::NOT_FOUND);
 }
 
@@ -155,13 +190,23 @@ async fn configure_update_allowed() {
 
     let auth = basic_auth(&actor_uuid, &actor_token);
     let body = json!({"color": "red"});
-    let resp = http_request(&app, Method::PUT, &format!("/devices/{}", target_uuid), Some(&auth), Some(body)).await;
+    let resp = http_request(
+        &app,
+        Method::PUT,
+        &format!("/devices/{}", target_uuid),
+        Some(&auth),
+        Some(body),
+    )
+    .await;
     assert_eq!(resp.status(), StatusCode::OK);
 
     let target: uuid::Uuid = target_uuid.parse().unwrap();
     let device = state.store.get_device(&target).await.unwrap().unwrap();
-    assert_eq!(device.properties.get("color"), Some(&json!("red")),
-        "property should be persisted in store after update");
+    assert_eq!(
+        device.properties.get("color"),
+        Some(&json!("red")),
+        "property should be persisted in store after update"
+    );
 }
 
 #[tokio::test]
@@ -175,7 +220,14 @@ async fn configure_update_denied() {
 
     let auth = basic_auth(&actor_uuid, &actor_token);
     let body = json!({"color": "red"});
-    let resp = http_request(&app, Method::PUT, &format!("/devices/{}", target_uuid), Some(&auth), Some(body)).await;
+    let resp = http_request(
+        &app,
+        Method::PUT,
+        &format!("/devices/{}", target_uuid),
+        Some(&auth),
+        Some(body),
+    )
+    .await;
     assert_eq!(resp.status(), StatusCode::FORBIDDEN);
 }
 
@@ -189,7 +241,14 @@ async fn configure_update_self() {
 
     let auth = basic_auth(&uuid, &token);
     let body = json!({"color": "green"});
-    let resp = http_request(&app, Method::PUT, &format!("/devices/{}", uuid), Some(&auth), Some(body)).await;
+    let resp = http_request(
+        &app,
+        Method::PUT,
+        &format!("/devices/{}", uuid),
+        Some(&auth),
+        Some(body),
+    )
+    .await;
     assert_eq!(resp.status(), StatusCode::OK);
 }
 
@@ -205,13 +264,23 @@ async fn configure_update_wildcard() {
 
     let auth = basic_auth(&actor_uuid, &actor_token);
     let body = json!({"color": "yellow"});
-    let resp = http_request(&app, Method::PUT, &format!("/devices/{}", target_uuid), Some(&auth), Some(body)).await;
+    let resp = http_request(
+        &app,
+        Method::PUT,
+        &format!("/devices/{}", target_uuid),
+        Some(&auth),
+        Some(body),
+    )
+    .await;
     assert_eq!(resp.status(), StatusCode::OK);
 
     let target: uuid::Uuid = target_uuid.parse().unwrap();
     let device = state.store.get_device(&target).await.unwrap().unwrap();
-    assert_eq!(device.properties.get("color"), Some(&json!("yellow")),
-        "property should be persisted in store after update");
+    assert_eq!(
+        device.properties.get("color"),
+        Some(&json!("yellow")),
+        "property should be persisted in store after update"
+    );
 }
 
 #[tokio::test]
@@ -224,7 +293,14 @@ async fn configure_update_empty() {
 
     let auth = basic_auth(&actor_uuid, &actor_token);
     let body = json!({"color": "purple"});
-    let resp = http_request(&app, Method::PUT, &format!("/devices/{}", target_uuid), Some(&auth), Some(body)).await;
+    let resp = http_request(
+        &app,
+        Method::PUT,
+        &format!("/devices/{}", target_uuid),
+        Some(&auth),
+        Some(body),
+    )
+    .await;
     assert_eq!(resp.status(), StatusCode::FORBIDDEN);
 }
 
@@ -243,7 +319,14 @@ async fn unregister_allowed() {
     let (target_uuid, _) = register_device_with_whitelists(&state, wl).await;
 
     let auth = basic_auth(&actor_uuid, &actor_token);
-    let resp = http_request(&app, Method::DELETE, &format!("/devices/{}", target_uuid), Some(&auth), None).await;
+    let resp = http_request(
+        &app,
+        Method::DELETE,
+        &format!("/devices/{}", target_uuid),
+        Some(&auth),
+        None,
+    )
+    .await;
     assert_eq!(resp.status(), StatusCode::OK);
 }
 
@@ -256,7 +339,14 @@ async fn unregister_denied() {
     let (target_uuid, _) = register_device_with_whitelists(&state, wl).await;
 
     let auth = basic_auth(&actor_uuid, &actor_token);
-    let resp = http_request(&app, Method::DELETE, &format!("/devices/{}", target_uuid), Some(&auth), None).await;
+    let resp = http_request(
+        &app,
+        Method::DELETE,
+        &format!("/devices/{}", target_uuid),
+        Some(&auth),
+        None,
+    )
+    .await;
     assert_eq!(resp.status(), StatusCode::FORBIDDEN);
 }
 
@@ -289,7 +379,9 @@ async fn message_from_allowed() {
     assert_eq!(resp.status(), StatusCode::OK);
 
     // Verify message was delivered
-    let msg = recv_json(&mut ws_target).await.expect("should receive message");
+    let msg = recv_json(&mut ws_target)
+        .await
+        .expect("should receive message");
     assert_eq!(msg["event"], "message");
     assert_eq!(msg["payload"]["test"], "allowed");
 }
@@ -343,7 +435,9 @@ async fn message_from_wildcard() {
     let resp = http_request(&app, Method::POST, "/messages", Some(&auth), Some(body)).await;
     assert_eq!(resp.status(), StatusCode::OK);
 
-    let msg = recv_json(&mut ws_target).await.expect("should receive message");
+    let msg = recv_json(&mut ws_target)
+        .await
+        .expect("should receive message");
     assert_eq!(msg["event"], "message");
 }
 
@@ -366,7 +460,9 @@ async fn message_from_self() {
     let resp = http_request(&app, Method::POST, "/messages", Some(&auth), Some(body)).await;
     assert_eq!(resp.status(), StatusCode::OK);
 
-    let msg = recv_json(&mut ws).await.expect("self-message should be delivered");
+    let msg = recv_json(&mut ws)
+        .await
+        .expect("self-message should be delivered");
     assert_eq!(msg["event"], "message");
 }
 
@@ -599,7 +695,9 @@ async fn message_as_allowed() {
                 .header("authorization", &auth)
                 .header("x-meshblu-as", &b_uuid)
                 .header("content-type", "application/json")
-                .body(axum::body::Body::from(serde_json::to_string(&body).unwrap()))
+                .body(axum::body::Body::from(
+                    serde_json::to_string(&body).unwrap(),
+                ))
                 .unwrap(),
         )
         .await
@@ -632,7 +730,9 @@ async fn message_as_denied() {
                 .header("authorization", &auth)
                 .header("x-meshblu-as", &b_uuid)
                 .header("content-type", "application/json")
-                .body(axum::body::Body::from(serde_json::to_string(&body).unwrap()))
+                .body(axum::body::Body::from(
+                    serde_json::to_string(&body).unwrap(),
+                ))
                 .unwrap(),
         )
         .await
@@ -667,7 +767,9 @@ async fn message_as_wildcard() {
                 .header("authorization", &auth)
                 .header("x-meshblu-as", &b_uuid)
                 .header("content-type", "application/json")
-                .body(axum::body::Body::from(serde_json::to_string(&body).unwrap()))
+                .body(axum::body::Body::from(
+                    serde_json::to_string(&body).unwrap(),
+                ))
                 .unwrap(),
         )
         .await
@@ -697,8 +799,14 @@ async fn assert_ws_subscribe_denied(sub_type: &str) {
     });
     ws.send(Message::Text(subscribe.to_string())).await.unwrap();
 
-    let resp = recv_json(&mut ws).await.expect("expected error response for denied subscribe");
-    assert_eq!(resp["event"], "error", "subscribe to {} on private device should be denied", sub_type);
+    let resp = recv_json(&mut ws)
+        .await
+        .expect("expected error response for denied subscribe");
+    assert_eq!(
+        resp["event"], "error",
+        "subscribe to {} on private device should be denied",
+        sub_type
+    );
 }
 
 #[tokio::test]
@@ -767,8 +875,13 @@ async fn ws_subscribe_broadcast_sent_allowed() {
     let ping = json!({"event": "ping"});
     ws.send(Message::Text(ping.to_string())).await.unwrap();
 
-    let resp = recv_json(&mut ws).await.expect("expected pong (no error before it)");
-    assert_eq!(resp["event"], "pong", "should get pong, not an error — subscribe should have succeeded");
+    let resp = recv_json(&mut ws)
+        .await
+        .expect("expected pong (no error before it)");
+    assert_eq!(
+        resp["event"], "pong",
+        "should get pong, not an error — subscribe should have succeeded"
+    );
 }
 
 // ---------------------------------------------------------------------------
@@ -817,7 +930,9 @@ async fn broadcast_as_allowed() {
                 .header("authorization", &auth)
                 .header("x-meshblu-as", &b_uuid)
                 .header("content-type", "application/json")
-                .body(axum::body::Body::from(serde_json::to_string(&body).unwrap()))
+                .body(axum::body::Body::from(
+                    serde_json::to_string(&body).unwrap(),
+                ))
                 .unwrap(),
         )
         .await
@@ -825,7 +940,9 @@ async fn broadcast_as_allowed() {
     assert_eq!(resp.status(), StatusCode::OK);
 
     // S should receive the broadcast
-    let msg = recv_json(&mut ws_s).await.expect("S should receive broadcast sent as B");
+    let msg = recv_json(&mut ws_s)
+        .await
+        .expect("S should receive broadcast sent as B");
     assert_eq!(msg["event"], "broadcast");
     assert_eq!(msg["payload"]["test"], "broadcast_as_allowed");
 }
@@ -856,7 +973,9 @@ async fn broadcast_as_denied() {
                 .header("authorization", &auth)
                 .header("x-meshblu-as", &b_uuid)
                 .header("content-type", "application/json")
-                .body(axum::body::Body::from(serde_json::to_string(&body).unwrap()))
+                .body(axum::body::Body::from(
+                    serde_json::to_string(&body).unwrap(),
+                ))
                 .unwrap(),
         )
         .await
@@ -904,14 +1023,18 @@ async fn broadcast_as_wildcard() {
                 .header("authorization", &auth)
                 .header("x-meshblu-as", &b_uuid)
                 .header("content-type", "application/json")
-                .body(axum::body::Body::from(serde_json::to_string(&body).unwrap()))
+                .body(axum::body::Body::from(
+                    serde_json::to_string(&body).unwrap(),
+                ))
                 .unwrap(),
         )
         .await
         .unwrap();
     assert_eq!(resp.status(), StatusCode::OK);
 
-    let msg = recv_json(&mut ws_s).await.expect("S should receive broadcast sent as B (wildcard)");
+    let msg = recv_json(&mut ws_s)
+        .await
+        .expect("S should receive broadcast sent as B (wildcard)");
     assert_eq!(msg["event"], "broadcast");
     assert_eq!(msg["payload"]["test"], "broadcast_as_wildcard");
 }

@@ -1,30 +1,27 @@
 use axum::response::IntoResponse;
 use lazy_static::lazy_static;
-use prometheus::{
-    Encoder, IntCounter, IntGauge, TextEncoder,
-};
+use prometheus::{Encoder, IntCounter, IntGauge, TextEncoder};
 
 lazy_static! {
     pub static ref WS_CONNECTIONS: IntGauge =
         IntGauge::new("freshblu_ws_connections", "Current WebSocket connections")
             .expect("metric can be created");
-
     pub static ref MQTT_CONNECTIONS: IntGauge =
         IntGauge::new("freshblu_mqtt_connections", "Current MQTT connections")
             .expect("metric can be created");
-
     pub static ref MESSAGES_SENT: IntCounter =
         IntCounter::new("freshblu_messages_sent_total", "Total messages published")
             .expect("metric can be created");
-
-    pub static ref MESSAGES_DELIVERED: IntCounter =
-        IntCounter::new("freshblu_messages_delivered_total", "Total messages delivered locally")
-            .expect("metric can be created");
-
-    pub static ref AUTH_REQUESTS: IntCounter =
-        IntCounter::new("freshblu_auth_requests_total", "Total authentication attempts")
-            .expect("metric can be created");
-
+    pub static ref MESSAGES_DELIVERED: IntCounter = IntCounter::new(
+        "freshblu_messages_delivered_total",
+        "Total messages delivered locally"
+    )
+    .expect("metric can be created");
+    pub static ref AUTH_REQUESTS: IntCounter = IntCounter::new(
+        "freshblu_auth_requests_total",
+        "Total authentication attempts"
+    )
+    .expect("metric can be created");
     pub static ref AUTH_CACHE_HITS: IntCounter =
         IntCounter::new("freshblu_auth_cache_hits_total", "Redis auth cache hits")
             .expect("metric can be created");
@@ -47,7 +44,10 @@ pub async fn metrics_handler() -> impl IntoResponse {
     let mut buffer = Vec::new();
     encoder.encode(&metric_families, &mut buffer).unwrap();
     (
-        [(axum::http::header::CONTENT_TYPE, "text/plain; charset=utf-8")],
+        [(
+            axum::http::header::CONTENT_TYPE,
+            "text/plain; charset=utf-8",
+        )],
         buffer,
     )
 }

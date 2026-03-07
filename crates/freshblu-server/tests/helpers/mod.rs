@@ -42,11 +42,7 @@ pub async fn setup() -> (String, AppState) {
 pub async fn setup_with_config(config: ServerConfig) -> (String, AppState) {
     let store: DynStore = Arc::new(SqliteStore::new("sqlite::memory:").await.unwrap());
     let bus: DynBus = Arc::new(freshblu_server::local_bus::LocalBus::new());
-    let state = AppState {
-        store,
-        bus,
-        config,
-    };
+    let state = AppState { store, bus, config };
     let app = build_router(state.clone());
 
     let listener = tokio::net::TcpListener::bind("127.0.0.1:0").await.unwrap();
@@ -165,7 +161,10 @@ pub async fn http_request(
         None => Body::empty(),
     };
 
-    app.clone().oneshot(builder.body(body).unwrap()).await.unwrap()
+    app.clone()
+        .oneshot(builder.body(body).unwrap())
+        .await
+        .unwrap()
 }
 
 /// Extract JSON body from response

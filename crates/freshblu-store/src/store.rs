@@ -24,7 +24,11 @@ pub trait DeviceStore: Send + Sync + 'static {
     async fn get_device(&self, uuid: &Uuid) -> Result<Option<Device>>;
 
     /// Update a device's properties
-    async fn update_device(&self, uuid: &Uuid, properties: HashMap<String, Value>) -> Result<Device>;
+    async fn update_device(
+        &self,
+        uuid: &Uuid,
+        properties: HashMap<String, Value>,
+    ) -> Result<Device>;
 
     /// Set device online/offline status
     async fn set_online(&self, uuid: &Uuid, online: bool) -> Result<()>;
@@ -43,13 +47,21 @@ pub trait DeviceStore: Send + Sync + 'static {
     // -- Token management --
 
     /// Generate a new token for a device and store its hash
-    async fn generate_token(&self, uuid: &Uuid, opts: GenerateTokenOptions) -> Result<(TokenRecord, String)>;
+    async fn generate_token(
+        &self,
+        uuid: &Uuid,
+        opts: GenerateTokenOptions,
+    ) -> Result<(TokenRecord, String)>;
 
     /// Revoke a specific token
     async fn revoke_token(&self, uuid: &Uuid, token: &str) -> Result<()>;
 
     /// Revoke tokens matching a query (e.g. by tag or expiry)
-    async fn revoke_tokens_by_query(&self, uuid: &Uuid, query: HashMap<String, Value>) -> Result<()>;
+    async fn revoke_tokens_by_query(
+        &self,
+        uuid: &Uuid,
+        query: HashMap<String, Value>,
+    ) -> Result<()>;
 
     /// Get all tokens for a device (hashes only, never plaintext)
     async fn list_tokens(&self, uuid: &Uuid) -> Result<Vec<TokenRecord>>;

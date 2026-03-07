@@ -64,8 +64,7 @@ impl ServerConfig {
                 .ok()
                 .and_then(|v| v.parse().ok())
                 .unwrap_or(1_048_576),
-            log_level: std::env::var("RUST_LOG")
-                .unwrap_or_else(|_| "info".to_string()),
+            log_level: std::env::var("RUST_LOG").unwrap_or_else(|_| "info".to_string()),
             nats_url: std::env::var("NATS_URL").ok(),
             redis_url: std::env::var("REDIS_URL").ok(),
             pod_id: std::env::var("POD_ID").unwrap_or_else(|_| gethostname()),
@@ -74,7 +73,5 @@ impl ServerConfig {
 }
 
 fn gethostname() -> String {
-    std::env::var("HOSTNAME").unwrap_or_else(|_| {
-        uuid::Uuid::new_v4().to_string()[..8].to_string()
-    })
+    std::env::var("HOSTNAME").unwrap_or_else(|_| uuid::Uuid::new_v4().to_string()[..8].to_string())
 }

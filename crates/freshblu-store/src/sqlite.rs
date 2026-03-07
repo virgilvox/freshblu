@@ -23,7 +23,9 @@ pub struct SqliteStore {
 impl SqliteStore {
     pub async fn new(database_url: &str) -> anyhow::Result<Self> {
         let pool = SqlitePool::connect(database_url).await?;
-        sqlx::query("PRAGMA foreign_keys = ON").execute(&pool).await?;
+        sqlx::query("PRAGMA foreign_keys = ON")
+            .execute(&pool)
+            .await?;
         let store = Self { pool };
         store.migrate().await?;
         Ok(store)
@@ -108,27 +110,23 @@ impl DeviceStore for SqliteStore {
         let created_at = device.meshblu.created_at.to_rfc3339();
         let uuid_str = uuid.to_string();
 
-        sqlx::query(
-            "INSERT INTO devices (uuid, data, online, created_at) VALUES (?, ?, 0, ?)",
-        )
-        .bind(&uuid_str)
-        .bind(&final_json)
-        .bind(&created_at)
-        .execute(&self.pool)
-        .await
-        .map_err(|e| FreshBluError::Storage(e.to_string()))?;
+        sqlx::query("INSERT INTO devices (uuid, data, online, created_at) VALUES (?, ?, 0, ?)")
+            .bind(&uuid_str)
+            .bind(&final_json)
+            .bind(&created_at)
+            .execute(&self.pool)
+            .await
+            .map_err(|e| FreshBluError::Storage(e.to_string()))?;
 
         // Store the primary token
         let now = chrono::Utc::now().to_rfc3339();
-        sqlx::query(
-            "INSERT INTO tokens (device_uuid, hash, created_at) VALUES (?, ?, ?)",
-        )
-        .bind(&uuid_str)
-        .bind(&token_hash)
-        .bind(&now)
-        .execute(&self.pool)
-        .await
-        .map_err(|e| FreshBluError::Storage(e.to_string()))?;
+        sqlx::query("INSERT INTO tokens (device_uuid, hash, created_at) VALUES (?, ?, ?)")
+            .bind(&uuid_str)
+            .bind(&token_hash)
+            .bind(&now)
+            .execute(&self.pool)
+            .await
+            .map_err(|e| FreshBluError::Storage(e.to_string()))?;
 
         Ok((device, plaintext_token))
     }
@@ -152,7 +150,11 @@ impl DeviceStore for SqliteStore {
         }
     }
 
-    async fn update_device(&self, uuid: &Uuid, properties: HashMap<String, Value>) -> Result<Device> {
+    async fn update_device(
+        &self,
+        uuid: &Uuid,
+        properties: HashMap<String, Value>,
+    ) -> Result<Device> {
         let mut device = self
             .get_device(uuid)
             .await?
@@ -222,7 +224,11 @@ impl DeviceStore for SqliteStore {
         if let Some(v) = online_filter {
             let want = v == "true" || v == &Value::Bool(true);
             sql.push_str(" AND online = ?");
-            bind_values.push(if want { "1".to_string() } else { "0".to_string() });
+            bind_values.push(if want {
+                "1".to_string()
+            } else {
+                "0".to_string()
+            });
         }
 
         sql.push_str(" LIMIT 100");
@@ -293,7 +299,11 @@ impl DeviceStore for SqliteStore {
         Ok(None)
     }
 
-    async fn generate_token(&self, uuid: &Uuid, opts: GenerateTokenOptions) -> Result<(TokenRecord, String)> {
+    async fn generate_token(
+        &self,
+        uuid: &Uuid,
+        opts: GenerateTokenOptions,
+    ) -> Result<(TokenRecord, String)> {
         let plaintext = generate_token();
         let hash = hash_token(&plaintext)?;
         let now = chrono::Utc::now().to_rfc3339();
@@ -345,7 +355,11 @@ impl DeviceStore for SqliteStore {
         Err(FreshBluError::NotFound)
     }
 
-    async fn revoke_tokens_by_query(&self, uuid: &Uuid, query: HashMap<String, Value>) -> Result<()> {
+    async fn revoke_tokens_by_query(
+        &self,
+        uuid: &Uuid,
+        query: HashMap<String, Value>,
+    ) -> Result<()> {
         if let Some(tag) = query.get("tag").and_then(|v| v.as_str()) {
             sqlx::query("DELETE FROM tokens WHERE device_uuid = ? AND tag = ?")
                 .bind(uuid.to_string())
@@ -379,9 +393,7 @@ impl DeviceStore for SqliteStore {
             let created_at_str: String = row.get("created_at");
             let expires_on: Option<i64> = row.get("expires_on");
             let tag: Option<String> = row.get("tag");
-            if let Ok(created_at) =
-                chrono::DateTime::parse_from_rfc3339(&created_at_str)
-            {
+            if let Ok(created_at) = chrono::DateTime::parse_from_rfc3339(&created_at_str) {
                 records.push(TokenRecord {
                     uuid: *uuid,
                     hash,

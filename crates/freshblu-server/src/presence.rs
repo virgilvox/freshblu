@@ -27,7 +27,8 @@ impl PresenceTracker {
     pub async fn register(&self, uuid: &Uuid) -> anyhow::Result<()> {
         let mut conn = self.redis.clone();
         let key = Self::key(uuid);
-        conn.set_ex::<_, _, ()>(&key, &self.pod_id, PRESENCE_TTL).await?;
+        conn.set_ex::<_, _, ()>(&key, &self.pod_id, PRESENCE_TTL)
+            .await?;
         Ok(())
     }
 

@@ -3,9 +3,7 @@ use axum::{
     Json,
 };
 use freshblu_core::{
-    error::FreshBluError,
-    permissions::PermissionChecker,
-    token::GenerateTokenOptions,
+    error::FreshBluError, permissions::PermissionChecker, token::GenerateTokenOptions,
 };
 use uuid::Uuid;
 
@@ -25,13 +23,10 @@ pub async fn generate_token(
         .store
         .get_device(&uuid)
         .await?
-        .ok_or(FreshBluError::NotFound).map_err(ApiError::from)?;
+        .ok_or(FreshBluError::NotFound)
+        .map_err(ApiError::from)?;
 
-    let checker = PermissionChecker::new(
-        &device.meshblu.whitelists,
-        &actor.uuid,
-        &uuid,
-    );
+    let checker = PermissionChecker::new(&device.meshblu.whitelists, &actor.uuid, &uuid);
 
     if !checker.can_configure_update() {
         return Err(FreshBluError::Forbidden.into());
@@ -59,13 +54,10 @@ pub async fn revoke_token(
         .store
         .get_device(&uuid)
         .await?
-        .ok_or(FreshBluError::NotFound).map_err(ApiError::from)?;
+        .ok_or(FreshBluError::NotFound)
+        .map_err(ApiError::from)?;
 
-    let checker = PermissionChecker::new(
-        &device.meshblu.whitelists,
-        &actor.uuid,
-        &uuid,
-    );
+    let checker = PermissionChecker::new(&device.meshblu.whitelists, &actor.uuid, &uuid);
 
     if !checker.can_configure_update() {
         return Err(FreshBluError::Forbidden.into());

@@ -163,10 +163,14 @@ pub struct WhitelistEntry {
 
 impl WhitelistEntry {
     pub fn wildcard() -> Self {
-        Self { uuid: "*".to_string() }
+        Self {
+            uuid: "*".to_string(),
+        }
     }
     pub fn for_uuid(uuid: &Uuid) -> Self {
-        Self { uuid: uuid.to_string() }
+        Self {
+            uuid: uuid.to_string(),
+        }
     }
     pub fn matches(&self, target: &Uuid) -> bool {
         self.uuid == "*" || self.uuid == target.to_string()

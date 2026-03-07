@@ -23,7 +23,7 @@ pub enum NatsEvent {
     /// A broadcast message.
     Broadcast { from: Uuid, msg: Message },
     /// A device's configuration was updated.
-    ConfigUpdate { uuid: Uuid, device: DeviceView },
+    ConfigUpdate { uuid: Uuid, device: Box<DeviceView> },
     /// A device was unregistered.
     Unregister { uuid: Uuid },
 }

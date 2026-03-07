@@ -40,20 +40,15 @@ impl FromRequestParts<AppState> for AuthenticatedDevice {
                 .get("skynet_auth_uuid")
                 .zip(headers.get("skynet_auth_token"))
                 .and_then(|(u, t)| {
-                    Some((
-                        u.to_str().ok()?.to_string(),
-                        t.to_str().ok()?.to_string(),
-                    ))
+                    Some((u.to_str().ok()?.to_string(), t.to_str().ok()?.to_string()))
                 })
         });
 
-        let (uuid_str, token) = creds.ok_or_else(|| {
-            ApiError::from(FreshBluError::Unauthorized).into_response()
-        })?;
+        let (uuid_str, token) =
+            creds.ok_or_else(|| ApiError::from(FreshBluError::Unauthorized).into_response())?;
 
-        let uuid = Uuid::parse_str(&uuid_str).map_err(|_| {
-            ApiError::from(FreshBluError::Unauthorized).into_response()
-        })?;
+        let uuid = Uuid::parse_str(&uuid_str)
+            .map_err(|_| ApiError::from(FreshBluError::Unauthorized).into_response())?;
 
         let device = state
             .store
