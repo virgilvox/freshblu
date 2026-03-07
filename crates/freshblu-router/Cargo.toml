@@ -10,9 +10,9 @@ keywords = ["iot", "meshblu", "nats", "router"]
 categories = ["network-programming"]
 
 [dependencies]
-freshblu-core = { path = "../freshblu-core", version = "0.1.0" }
-freshblu-store = { path = "../freshblu-store", version = "0.1.0", default-features = false, features = ["postgres", "cache"] }
-freshblu-proto = { path = "../freshblu-proto", version = "0.1.0" }
+freshblu-core = { path = "../freshblu-core", version = "0.1.1" }
+freshblu-store = { path = "../freshblu-store", version = "0.1.1", default-features = false, features = ["postgres", "cache"] }
+freshblu-proto = { path = "../freshblu-proto", version = "0.1.1" }
 
 tokio = { workspace = true }
 futures = { workspace = true }
