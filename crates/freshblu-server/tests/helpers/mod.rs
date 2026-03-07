@@ -6,7 +6,7 @@ use axum::{
 };
 use freshblu_core::device::RegisterParams;
 use freshblu_core::permissions::Whitelists;
-use freshblu_server::{build_router, AppState, DynBus, ServerConfig};
+use freshblu_server::{build_router, AppState, DynBus, RateLimiter, ServerConfig, WebhookExecutor};
 use freshblu_store::{sqlite::SqliteStore, DynStore};
 use futures::{SinkExt, StreamExt};
 use serde_json::{json, Value};
@@ -17,15 +17,25 @@ use tower::ServiceExt;
 pub type WsStream =
     tokio_tungstenite::WebSocketStream<tokio_tungstenite::MaybeTlsStream<tokio::net::TcpStream>>;
 
+fn make_state(store: DynStore, bus: DynBus, config: ServerConfig) -> AppState {
+    let rate_limiter = RateLimiter::new(config.rate_limit, config.rate_window);
+    let mut executor = WebhookExecutor::new(store.clone(), bus.clone());
+    executor.set_allow_localhost(true);
+    let webhook_executor = Arc::new(executor);
+    AppState {
+        store,
+        bus,
+        config,
+        rate_limiter,
+        webhook_executor,
+    }
+}
+
 /// Start a server, return WS URL + state
 pub async fn setup() -> (String, AppState) {
     let store: DynStore = Arc::new(SqliteStore::new("sqlite::memory:").await.unwrap());
     let bus: DynBus = Arc::new(freshblu_server::local_bus::LocalBus::new());
-    let state = AppState {
-        store,
-        bus,
-        config: ServerConfig::default(),
-    };
+    let state = make_state(store, bus, ServerConfig::default());
     let app = build_router(state.clone());
 
     let listener = tokio::net::TcpListener::bind("127.0.0.1:0").await.unwrap();
@@ -42,7 +52,7 @@ pub async fn setup() -> (String, AppState) {
 pub async fn setup_with_config(config: ServerConfig) -> (String, AppState) {
     let store: DynStore = Arc::new(SqliteStore::new("sqlite::memory:").await.unwrap());
     let bus: DynBus = Arc::new(freshblu_server::local_bus::LocalBus::new());
-    let state = AppState { store, bus, config };
+    let state = make_state(store, bus, config);
     let app = build_router(state.clone());
 
     let listener = tokio::net::TcpListener::bind("127.0.0.1:0").await.unwrap();
@@ -59,11 +69,7 @@ pub async fn setup_with_config(config: ServerConfig) -> (String, AppState) {
 pub async fn setup_router() -> (axum::Router, AppState) {
     let store: DynStore = Arc::new(SqliteStore::new("sqlite::memory:").await.unwrap());
     let bus: DynBus = Arc::new(freshblu_server::local_bus::LocalBus::new());
-    let state = AppState {
-        store,
-        bus,
-        config: ServerConfig::default(),
-    };
+    let state = make_state(store, bus, ServerConfig::default());
     let app = build_router(state.clone());
     (app, state)
 }

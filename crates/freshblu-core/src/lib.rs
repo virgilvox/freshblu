@@ -3,6 +3,7 @@ pub mod auth;
 
 pub mod device;
 pub mod error;
+pub mod forwarder;
 pub mod message;
 pub mod permissions;
 pub mod subscription;

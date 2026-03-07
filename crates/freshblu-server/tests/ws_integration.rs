@@ -1,4 +1,4 @@
-use freshblu_server::{build_router, AppState, ServerConfig};
+use freshblu_server::{build_router, AppState, RateLimiter, ServerConfig, WebhookExecutor};
 use freshblu_store::sqlite::SqliteStore;
 use std::sync::Arc;
 
@@ -10,10 +10,17 @@ async fn setup() -> (String, AppState) {
     let store: freshblu_store::DynStore =
         Arc::new(SqliteStore::new("sqlite::memory:").await.unwrap());
     let bus: freshblu_server::DynBus = Arc::new(freshblu_server::local_bus::LocalBus::new());
+    let config = ServerConfig::default();
+    let rate_limiter = RateLimiter::new(config.rate_limit, config.rate_window);
+    let mut wh = WebhookExecutor::new(store.clone(), bus.clone());
+    wh.set_allow_localhost(true);
+    let webhook_executor = Arc::new(wh);
     let state = AppState {
         store,
         bus,
-        config: ServerConfig::default(),
+        config,
+        rate_limiter,
+        webhook_executor,
     };
     let app = build_router(state.clone());
 

@@ -2,6 +2,7 @@ pub mod auth;
 pub mod devices;
 pub mod messages;
 pub mod status;
+pub mod subscribe;
 pub mod subscriptions;
 pub mod tokens;
 
@@ -56,6 +57,12 @@ impl FromRequestParts<AppState> for AuthenticatedDevice {
             .await
             .map_err(|e| ApiError::from(e).into_response())?
             .ok_or_else(|| ApiError::from(FreshBluError::Unauthorized).into_response())?;
+
+        // Rate limiting
+        state
+            .rate_limiter
+            .check(&uuid)
+            .map_err(|e| ApiError::from(e).into_response())?;
 
         // Check x-meshblu-as header for acting as another device
         let as_uuid = headers

@@ -1194,7 +1194,7 @@ async fn raw_tcp_property_roundtrip() {
     assert_eq!(resp.status, 200);
     let json = parse_json(&resp.body);
     assert_eq!(json["intVal"], 42);
-    assert_eq!(json["floatVal"], 3.14);
+    assert!((json["floatVal"].as_f64().unwrap() - 3.14).abs() < f64::EPSILON);
     assert_eq!(json["boolVal"], true);
     assert_eq!(json["strVal"], "hello world");
     assert!(json["nullVal"].is_null());

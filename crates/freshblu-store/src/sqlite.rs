@@ -11,7 +11,10 @@ use freshblu_core::{
     token::{GenerateTokenOptions, TokenRecord},
 };
 use serde_json::Value;
-use sqlx::{sqlite::SqlitePool, Row};
+use sqlx::{
+    sqlite::{SqliteConnectOptions, SqlitePool, SqlitePoolOptions},
+    Row,
+};
 use uuid::Uuid;
 
 use crate::store::DeviceStore;
@@ -22,7 +25,12 @@ pub struct SqliteStore {
 
 impl SqliteStore {
     pub async fn new(database_url: &str) -> anyhow::Result<Self> {
-        let pool = SqlitePool::connect(database_url).await?;
+        let opts = SqliteConnectOptions::from_str(database_url)?
+            .create_if_missing(true);
+        let pool = SqlitePoolOptions::new()
+            .max_connections(50)
+            .connect_with(opts)
+            .await?;
         sqlx::query("PRAGMA foreign_keys = ON")
             .execute(&pool)
             .await?;
@@ -396,6 +404,114 @@ impl DeviceStore for SqliteStore {
             if let Ok(created_at) = chrono::DateTime::parse_from_rfc3339(&created_at_str) {
                 records.push(TokenRecord {
                     uuid: *uuid,
+                    hash,
+                    created_at: created_at.with_timezone(&chrono::Utc),
+                    expires_on,
+                    tag,
+                });
+            }
+        }
+
+        Ok(records)
+    }
+
+    async fn claim_device(&self, uuid: &Uuid, owner: &Uuid) -> Result<Device> {
+        let mut device = self
+            .get_device(uuid)
+            .await?
+            .ok_or(FreshBluError::NotFound)?;
+
+        if device.meshblu.owner.is_some() {
+            return Err(FreshBluError::Forbidden);
+        }
+
+        device.meshblu.owner = Some(*owner);
+        device.meshblu.whitelists = Whitelists::private(owner);
+        device.meshblu.updated_at = Some(chrono::Utc::now());
+
+        let device_json = Self::serialize_device(&device)?;
+        let hash = compute_device_hash(&device_json);
+        device.meshblu.hash = hash;
+
+        let final_json = Self::serialize_device(&device)?;
+        let now = chrono::Utc::now().to_rfc3339();
+
+        sqlx::query("UPDATE devices SET data = ?, updated_at = ? WHERE uuid = ?")
+            .bind(&final_json)
+            .bind(&now)
+            .bind(uuid.to_string())
+            .execute(&self.pool)
+            .await
+            .map_err(|e| FreshBluError::Storage(e.to_string()))?;
+
+        Ok(device)
+    }
+
+    async fn reset_token(&self, uuid: &Uuid) -> Result<String> {
+        // Delete all existing tokens
+        sqlx::query("DELETE FROM tokens WHERE device_uuid = ?")
+            .bind(uuid.to_string())
+            .execute(&self.pool)
+            .await
+            .map_err(|e| FreshBluError::Storage(e.to_string()))?;
+
+        // Generate new root token
+        let plaintext = generate_token();
+        let hash = hash_token(&plaintext)?;
+        let now = chrono::Utc::now().to_rfc3339();
+
+        sqlx::query("INSERT INTO tokens (device_uuid, hash, created_at) VALUES (?, ?, ?)")
+            .bind(uuid.to_string())
+            .bind(&hash)
+            .bind(&now)
+            .execute(&self.pool)
+            .await
+            .map_err(|e| FreshBluError::Storage(e.to_string()))?;
+
+        Ok(plaintext)
+    }
+
+    async fn search_tokens(
+        &self,
+        query: &std::collections::HashMap<String, serde_json::Value>,
+    ) -> Result<Vec<TokenRecord>> {
+        let mut sql = String::from("SELECT device_uuid, hash, created_at, expires_on, tag FROM tokens WHERE 1=1");
+        let mut binds: Vec<String> = Vec::new();
+
+        if let Some(device_uuid) = query.get("uuid").and_then(|v| v.as_str()) {
+            sql.push_str(" AND device_uuid = ?");
+            binds.push(device_uuid.to_string());
+        }
+        if let Some(tag) = query.get("tag").and_then(|v| v.as_str()) {
+            sql.push_str(" AND tag = ?");
+            binds.push(tag.to_string());
+        }
+
+        sql.push_str(" LIMIT 100");
+
+        let mut q = sqlx::query(&sql);
+        for b in &binds {
+            q = q.bind(b);
+        }
+
+        let rows = q
+            .fetch_all(&self.pool)
+            .await
+            .map_err(|e| FreshBluError::Storage(e.to_string()))?;
+
+        let mut records = Vec::new();
+        for row in rows {
+            let device_uuid_str: String = row.get("device_uuid");
+            let hash: String = row.get("hash");
+            let created_at_str: String = row.get("created_at");
+            let expires_on: Option<i64> = row.get("expires_on");
+            let tag: Option<String> = row.get("tag");
+            if let (Ok(device_uuid), Ok(created_at)) = (
+                Uuid::parse_str(&device_uuid_str),
+                chrono::DateTime::parse_from_rfc3339(&created_at_str),
+            ) {
+                records.push(TokenRecord {
+                    uuid: device_uuid,
                     hash,
                     created_at: created_at.with_timezone(&chrono::Utc),
                     expires_on,

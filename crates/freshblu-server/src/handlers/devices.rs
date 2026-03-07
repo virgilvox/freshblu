@@ -5,6 +5,7 @@ use axum::{
 use freshblu_core::{
     device::{DeviceView, RegisterParams},
     error::FreshBluError,
+    forwarder::ForwarderEvent,
     message::DeviceEvent,
     permissions::PermissionChecker,
     subscription::SubscriptionType,
@@ -144,6 +145,16 @@ pub async fn update_device(
     // Also deliver to device itself if connected
     let _ = state.bus.publish(&uuid, config_event).await;
 
+    // Fire configure.sent forwarders
+    let payload = serde_json::to_value(&view).unwrap_or_default();
+    let executor = state.webhook_executor.clone();
+    let dev = updated.clone();
+    tokio::spawn(async move {
+        executor
+            .execute(&dev, ForwarderEvent::ConfigureSent, &payload, &[])
+            .await;
+    });
+
     Ok(Json(view))
 }
 
@@ -191,6 +202,16 @@ pub async fn unregister(
     for sub_uuid in subs {
         let _ = state.bus.publish(&sub_uuid, unreg_event.clone()).await;
     }
+
+    // Fire unregister.sent forwarders before deleting
+    let payload = json!({ "uuid": uuid });
+    let executor = state.webhook_executor.clone();
+    let dev = device.clone();
+    tokio::spawn(async move {
+        executor
+            .execute(&dev, ForwarderEvent::UnregisterSent, &payload, &[])
+            .await;
+    });
 
     state.store.unregister(&uuid).await?;
     state.bus.disconnect(&uuid);
@@ -261,6 +282,34 @@ pub async fn my_devices(
         .ok_or(FreshBluError::NotFound)
         .map_err(ApiError::from)?;
     Ok(Json(vec![device.to_view()]))
+}
+
+// POST /claimdevice/:uuid
+pub async fn claim_device(
+    State(state): State<AppState>,
+    AuthenticatedDevice(actor, _): AuthenticatedDevice,
+    Path(uuid): Path<Uuid>,
+) -> ApiResult<Value> {
+    let _device = state.store.claim_device(&uuid, &actor.uuid).await?;
+    Ok(Json(json!({ "uuid": uuid, "owner": actor.uuid })))
+}
+
+// GET /devices/:uuid/publickey
+pub async fn get_public_key(
+    State(state): State<AppState>,
+    Path(uuid): Path<Uuid>,
+) -> ApiResult<Value> {
+    let device = state
+        .store
+        .get_device(&uuid)
+        .await?
+        .ok_or(FreshBluError::NotFound)
+        .map_err(ApiError::from)?;
+
+    Ok(Json(json!({
+        "uuid": uuid,
+        "publicKey": device.meshblu.public_key,
+    })))
 }
 
 pub mod auth {

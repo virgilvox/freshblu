@@ -13,6 +13,7 @@ use axum::{
 };
 use freshblu_core::{
     device::RegisterParams,
+    forwarder::ForwarderEvent,
     message::{DeviceEvent, SendMessageParams},
     subscription::{CreateSubscriptionParams, SubscriptionType},
 };
@@ -254,7 +255,7 @@ async fn handle_socket(socket: WebSocket, state: AppState) {
                     ClientMessage::Update(properties) => {
                         if let Ok(updated) = state.store.update_device(&device_uuid, properties).await {
                             let view = updated.to_view();
-                            let config_event = DeviceEvent::Config { device: Box::new(view) };
+                            let config_event = DeviceEvent::Config { device: Box::new(view.clone()) };
                             // Fan out to configure.sent subscribers
                             let subscribers = state.store
                                 .get_subscribers(&device_uuid, &SubscriptionType::ConfigureSent)
@@ -263,6 +264,16 @@ async fn handle_socket(socket: WebSocket, state: AppState) {
                                 let _ = state.bus.publish(&sub_uuid, config_event.clone()).await;
                             }
                             let _ = state.bus.publish(&device_uuid, config_event).await;
+
+                            // Fire configure.sent forwarders (parity with HTTP handler)
+                            let payload = serde_json::to_value(&view).unwrap_or_default();
+                            let executor = state.webhook_executor.clone();
+                            let dev = updated.clone();
+                            tokio::spawn(async move {
+                                executor
+                                    .execute(&dev, ForwarderEvent::ConfigureSent, &payload, &[])
+                                    .await;
+                            });
                         }
                     }
 
@@ -318,8 +329,13 @@ async fn handle_socket(socket: WebSocket, state: AppState) {
                             }
                         }
                     }
-                    Err(tokio::sync::broadcast::error::RecvError::Lagged(_)) => {
-                        // Slow consumer, skip missed messages
+                    Err(tokio::sync::broadcast::error::RecvError::Lagged(n)) => {
+                        tracing::warn!(
+                            device = %device_uuid,
+                            lagged = n,
+                            "WS slow consumer: skipped {} messages",
+                            n
+                        );
                         continue;
                     }
                     Err(tokio::sync::broadcast::error::RecvError::Closed) => {
@@ -337,6 +353,26 @@ async fn handle_socket(socket: WebSocket, state: AppState) {
 }
 
 async fn handle_ws_message(state: &AppState, actor_uuid: Uuid, params: SendMessageParams) {
+    // Message size validation (same as HTTP handler)
+    {
+        let payload_size = params
+            .payload
+            .as_ref()
+            .and_then(|p| serde_json::to_string(p).ok())
+            .map(|s| s.len())
+            .unwrap_or(0);
+        let extra_size = if params.extra.is_empty() {
+            0
+        } else {
+            serde_json::to_string(&params.extra)
+                .map(|s| s.len())
+                .unwrap_or(0)
+        };
+        if payload_size + extra_size > state.config.max_message_size {
+            return; // silently drop oversized WS messages
+        }
+    }
+
     let msg = freshblu_core::message::Message {
         devices: params.devices.clone(),
         from_uuid: Some(actor_uuid),
@@ -386,5 +422,17 @@ async fn handle_ws_message(state: &AppState, actor_uuid: Uuid, params: SendMessa
                 .publish(&sub_uuid, DeviceEvent::Broadcast(msg.clone()))
                 .await;
         }
+    }
+
+    // Fire message.sent forwarders (parity with HTTP handler)
+    if let Ok(Some(sender_device)) = state.store.get_device(&actor_uuid).await {
+        let payload = serde_json::to_value(&msg).unwrap_or_default();
+        let executor = state.webhook_executor.clone();
+        let dev = sender_device.clone();
+        tokio::spawn(async move {
+            executor
+                .execute(&dev, ForwarderEvent::MessageSent, &payload, &[])
+                .await;
+        });
     }
 }

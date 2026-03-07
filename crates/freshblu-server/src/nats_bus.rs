@@ -85,8 +85,14 @@ impl MessageBus for NatsBus {
     }
 
     async fn publish_many(&self, targets: &[Uuid], event: DeviceEvent) -> anyhow::Result<()> {
-        for target in targets {
-            self.publish(target, event.clone()).await?;
+        let futures: Vec<_> = targets
+            .iter()
+            .map(|target| self.publish(target, event.clone()))
+            .collect();
+        let results = futures::future::join_all(futures).await;
+        // Return the first error if any
+        for result in results {
+            result?;
         }
         Ok(())
     }

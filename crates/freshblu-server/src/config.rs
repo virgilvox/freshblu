@@ -22,6 +22,14 @@ pub struct ServerConfig {
     pub redis_url: Option<String>,
     /// Pod ID for NATS delivery routing (defaults to hostname)
     pub pod_id: String,
+    /// Rate limit: max requests per window per device
+    pub rate_limit: u64,
+    /// Rate limit window in seconds
+    pub rate_window: u64,
+    /// Server public key (PEM)
+    pub public_key: Option<String>,
+    /// Server private key (PEM)
+    pub private_key: Option<String>,
 }
 
 impl Default for ServerConfig {
@@ -37,6 +45,10 @@ impl Default for ServerConfig {
             nats_url: None,
             redis_url: None,
             pod_id: gethostname(),
+            rate_limit: 1200,
+            rate_window: 60,
+            public_key: None,
+            private_key: None,
         }
     }
 }
@@ -68,6 +80,16 @@ impl ServerConfig {
             nats_url: std::env::var("NATS_URL").ok(),
             redis_url: std::env::var("REDIS_URL").ok(),
             pod_id: std::env::var("POD_ID").unwrap_or_else(|_| gethostname()),
+            rate_limit: std::env::var("FRESHBLU_RATE_LIMIT")
+                .ok()
+                .and_then(|v| v.parse().ok())
+                .unwrap_or(1200),
+            rate_window: std::env::var("FRESHBLU_RATE_WINDOW")
+                .ok()
+                .and_then(|v| v.parse().ok())
+                .unwrap_or(60),
+            public_key: std::env::var("FRESHBLU_PUBLIC_KEY").ok(),
+            private_key: std::env::var("FRESHBLU_PRIVATE_KEY").ok(),
         }
     }
 }

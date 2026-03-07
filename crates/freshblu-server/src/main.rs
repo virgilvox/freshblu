@@ -58,10 +58,21 @@ async fn main() -> anyhow::Result<()> {
         Arc::new(freshblu_server::local_bus::LocalBus::new())
     };
 
+    // Initialize rate limiter
+    let rate_limiter = freshblu_server::RateLimiter::new(config.rate_limit, config.rate_window);
+
+    // Initialize webhook executor
+    let webhook_executor = Arc::new(freshblu_server::WebhookExecutor::new(
+        store.clone(),
+        bus.clone(),
+    ));
+
     let state = AppState {
         store,
         bus,
         config: config.clone(),
+        rate_limiter,
+        webhook_executor,
     };
 
     // Start MQTT broker

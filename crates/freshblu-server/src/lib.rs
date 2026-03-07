@@ -7,6 +7,8 @@ pub mod metrics;
 pub mod mqtt;
 pub mod nats_bus;
 pub mod presence;
+pub mod rate_limit;
+pub mod webhook;
 pub mod ws;
 
 use axum::{
@@ -18,11 +20,14 @@ use axum::{
 use freshblu_core::error::FreshBluError;
 use freshblu_store::DynStore;
 use serde_json::json;
+use std::sync::Arc;
 use tower_http::{cors::CorsLayer, trace::TraceLayer};
 
 pub use bus::DynBus;
 pub use config::ServerConfig;
 pub use hub::MessageHub;
+pub use rate_limit::RateLimiter;
+pub use webhook::WebhookExecutor;
 
 /// Newtype wrapper to implement IntoResponse for FreshBluError (orphan rule)
 pub struct ApiError(pub FreshBluError);
@@ -48,12 +53,15 @@ pub struct AppState {
     pub store: DynStore,
     pub bus: DynBus,
     pub config: ServerConfig,
+    pub rate_limiter: Arc<RateLimiter>,
+    pub webhook_executor: Arc<WebhookExecutor>,
 }
 
 pub fn build_router(state: AppState) -> Router {
     Router::new()
-        // Status
+        // Status & healthcheck
         .route("/status", get(handlers::status::status))
+        .route("/healthcheck", get(handlers::status::healthcheck))
         // Authentication
         .route("/authenticate", post(handlers::auth::authenticate))
         // Device registration / auth
@@ -76,8 +84,21 @@ pub fn build_router(state: AppState) -> Router {
         // Messaging
         .route("/messages", post(handlers::messages::send_message))
         .route("/v2/messages", post(handlers::messages::send_message))
+        // Broadcasts
+        .route("/broadcasts", post(handlers::messages::broadcast))
         // My devices
         .route("/mydevices", get(handlers::devices::my_devices))
+        // Claim device
+        .route(
+            "/claimdevice/:uuid",
+            post(handlers::devices::claim_device),
+        )
+        // Public key endpoints
+        .route(
+            "/devices/:uuid/publickey",
+            get(handlers::devices::get_public_key),
+        )
+        .route("/publickey", get(handlers::status::server_public_key))
         // Subscriptions
         .route(
             "/devices/:uuid/subscriptions",
@@ -100,6 +121,17 @@ pub fn build_router(state: AppState) -> Router {
             "/devices/:uuid/tokens/:token",
             delete(handlers::tokens::revoke_token),
         )
+        .route(
+            "/devices/:uuid/token",
+            post(handlers::tokens::reset_token),
+        )
+        // Token search
+        .route(
+            "/search/tokens",
+            post(handlers::tokens::search_tokens),
+        )
+        // Firehose / HTTP streaming
+        .route("/subscribe", get(handlers::subscribe::subscribe))
         // WebSocket
         .route("/ws", get(ws::ws_handler))
         .route("/socket.io", get(ws::ws_handler))

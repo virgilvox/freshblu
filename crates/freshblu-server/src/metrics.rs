@@ -25,6 +25,12 @@ lazy_static! {
     pub static ref AUTH_CACHE_HITS: IntCounter =
         IntCounter::new("freshblu_auth_cache_hits_total", "Redis auth cache hits")
             .expect("metric can be created");
+    pub static ref WEBHOOKS_SENT: IntCounter =
+        IntCounter::new("freshblu_webhooks_sent_total", "Total webhooks sent")
+            .expect("metric can be created");
+    pub static ref WEBHOOKS_FAILED: IntCounter =
+        IntCounter::new("freshblu_webhooks_failed_total", "Total webhook failures")
+            .expect("metric can be created");
 }
 
 pub fn register_metrics() {
@@ -35,6 +41,8 @@ pub fn register_metrics() {
     let _ = registry.register(Box::new(MESSAGES_DELIVERED.clone()));
     let _ = registry.register(Box::new(AUTH_REQUESTS.clone()));
     let _ = registry.register(Box::new(AUTH_CACHE_HITS.clone()));
+    let _ = registry.register(Box::new(WEBHOOKS_SENT.clone()));
+    let _ = registry.register(Box::new(WEBHOOKS_FAILED.clone()));
 }
 
 pub async fn metrics_handler() -> impl IntoResponse {

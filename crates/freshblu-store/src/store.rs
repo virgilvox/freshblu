@@ -66,6 +66,22 @@ pub trait DeviceStore: Send + Sync + 'static {
     /// Get all tokens for a device (hashes only, never plaintext)
     async fn list_tokens(&self, uuid: &Uuid) -> Result<Vec<TokenRecord>>;
 
+    // -- Device claim --
+
+    /// Claim a device: set owner and switch to private whitelists.
+    /// Returns error if already claimed.
+    async fn claim_device(&self, uuid: &Uuid, owner: &Uuid) -> Result<Device>;
+
+    // -- Token reset --
+
+    /// Revoke all existing tokens, generate a new root token
+    async fn reset_token(&self, uuid: &Uuid) -> Result<String>;
+
+    // -- Token search --
+
+    /// Search tokens by tag, device UUID, or expiry
+    async fn search_tokens(&self, query: &HashMap<String, Value>) -> Result<Vec<TokenRecord>>;
+
     // -- Subscriptions --
 
     /// Create a subscription

@@ -58,29 +58,39 @@ impl CachedStore {
     }
 
     async fn invalidate_auth(&self, uuid: &Uuid) {
-        let mut conn = self.redis.clone();
         let pattern = Self::auth_pattern(uuid);
-        let keys: std::result::Result<Vec<String>, _> = redis::cmd("KEYS")
-            .arg(&pattern)
-            .query_async(&mut conn)
-            .await;
-        if let Ok(keys) = keys {
-            for key in keys {
-                let _: std::result::Result<(), _> = conn.del::<_, ()>(&key).await;
-            }
-        }
+        self.scan_and_delete(&pattern).await;
     }
 
     async fn invalidate_subs(&self, uuid: &Uuid) {
-        let mut conn = self.redis.clone();
         let pattern = format!("freshblu:subs:{}:*", uuid);
-        let keys: std::result::Result<Vec<String>, _> = redis::cmd("KEYS")
-            .arg(&pattern)
-            .query_async(&mut conn)
-            .await;
-        if let Ok(keys) = keys {
-            for key in keys {
-                let _: std::result::Result<(), _> = conn.del::<_, ()>(&key).await;
+        self.scan_and_delete(&pattern).await;
+    }
+
+    /// Use SCAN instead of KEYS to avoid blocking Redis on large keyspaces.
+    async fn scan_and_delete(&self, pattern: &str) {
+        let mut conn = self.redis.clone();
+        let mut cursor: u64 = 0;
+        loop {
+            let result: std::result::Result<(u64, Vec<String>), _> = redis::cmd("SCAN")
+                .arg(cursor)
+                .arg("MATCH")
+                .arg(pattern)
+                .arg("COUNT")
+                .arg(100)
+                .query_async(&mut conn)
+                .await;
+            match result {
+                Ok((next_cursor, keys)) => {
+                    for key in keys {
+                        let _: std::result::Result<(), _> = conn.del::<_, ()>(&key).await;
+                    }
+                    if next_cursor == 0 {
+                        break;
+                    }
+                    cursor = next_cursor;
+                }
+                Err(_) => break,
             }
         }
     }
@@ -192,6 +202,22 @@ impl DeviceStore for CachedStore {
 
     async fn list_tokens(&self, uuid: &Uuid) -> Result<Vec<TokenRecord>> {
         self.inner.list_tokens(uuid).await
+    }
+
+    async fn claim_device(&self, uuid: &Uuid, owner: &Uuid) -> Result<Device> {
+        let result = self.inner.claim_device(uuid, owner).await?;
+        self.invalidate_device(uuid).await;
+        Ok(result)
+    }
+
+    async fn reset_token(&self, uuid: &Uuid) -> Result<String> {
+        let result = self.inner.reset_token(uuid).await?;
+        self.invalidate_auth(uuid).await;
+        Ok(result)
+    }
+
+    async fn search_tokens(&self, query: &HashMap<String, Value>) -> Result<Vec<TokenRecord>> {
+        self.inner.search_tokens(query).await
     }
 
     async fn create_subscription(&self, params: &CreateSubscriptionParams) -> Result<Subscription> {

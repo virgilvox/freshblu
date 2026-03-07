@@ -7,7 +7,7 @@ use freshblu_core::message::DeviceEvent;
 use tokio::sync::broadcast;
 use uuid::Uuid;
 
-const CHANNEL_CAPACITY: usize = 256;
+const DEFAULT_CHANNEL_CAPACITY: usize = 256;
 
 /// A sender handle for a connected device
 pub type EventSender = broadcast::Sender<DeviceEvent>;
@@ -17,12 +17,21 @@ pub type EventSender = broadcast::Sender<DeviceEvent>;
 pub struct MessageHub {
     /// Map of connected device UUID -> broadcast sender
     connections: Arc<DashMap<Uuid, EventSender>>,
+    channel_capacity: usize,
 }
 
 impl MessageHub {
     pub fn new() -> Arc<Self> {
         Arc::new(Self {
             connections: Arc::new(DashMap::new()),
+            channel_capacity: DEFAULT_CHANNEL_CAPACITY,
+        })
+    }
+
+    pub fn with_capacity(capacity: usize) -> Arc<Self> {
+        Arc::new(Self {
+            connections: Arc::new(DashMap::new()),
+            channel_capacity: capacity,
         })
     }
 
@@ -38,7 +47,7 @@ impl MessageHub {
         if let Some(sender) = self.connections.get(&uuid) {
             return sender.subscribe();
         }
-        let (tx, rx) = broadcast::channel(CHANNEL_CAPACITY);
+        let (tx, rx) = broadcast::channel(self.channel_capacity);
         self.connections.insert(uuid, tx);
         rx
     }
@@ -82,6 +91,7 @@ impl Default for MessageHub {
     fn default() -> Self {
         Self {
             connections: Arc::new(DashMap::new()),
+            channel_capacity: DEFAULT_CHANNEL_CAPACITY,
         }
     }
 }

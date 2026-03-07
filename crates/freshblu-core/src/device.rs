@@ -4,6 +4,7 @@ use serde_json::Value;
 use std::collections::HashMap;
 use uuid::Uuid;
 
+use crate::forwarder::Forwarders;
 use crate::permissions::Whitelists;
 
 /// A device in the FreshBlu registry.
@@ -49,6 +50,15 @@ pub struct MeshbluMeta {
     /// Permission whitelists (v2.0)
     #[serde(default)]
     pub whitelists: Whitelists,
+    /// Forwarder configuration (webhooks, meshblu-to-meshblu)
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub forwarders: Option<Forwarders>,
+    /// Device public key (PEM)
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub public_key: Option<String>,
+    /// Owner UUID (set when device is claimed)
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub owner: Option<Uuid>,
 }
 
 impl MeshbluMeta {
@@ -59,6 +69,9 @@ impl MeshbluMeta {
             updated_at: None,
             hash: String::new(),
             whitelists,
+            forwarders: None,
+            public_key: None,
+            owner: None,
         }
     }
 }

@@ -1,6 +1,7 @@
 use axum::{extract::State, Json};
 use freshblu_core::{
     error::FreshBluError,
+    forwarder::ForwarderEvent,
     message::{DeviceEvent, Message, SendMessageParams},
     permissions::PermissionChecker,
     subscription::SubscriptionType,
@@ -20,6 +21,26 @@ pub async fn send_message(
     AuthenticatedDevice(actor, as_uuid): AuthenticatedDevice,
     Json(params): Json<SendMessageParams>,
 ) -> ApiResult<serde_json::Value> {
+    // Message size validation — checks payload + extra fields
+    {
+        let payload_size = params
+            .payload
+            .as_ref()
+            .and_then(|p| serde_json::to_string(p).ok())
+            .map(|s| s.len())
+            .unwrap_or(0);
+        let extra_size = if params.extra.is_empty() {
+            0
+        } else {
+            serde_json::to_string(&params.extra)
+                .map(|s| s.len())
+                .unwrap_or(0)
+        };
+        if payload_size + extra_size > state.config.max_message_size {
+            return Err(FreshBluError::MessageTooLarge.into());
+        }
+    }
+
     let sender_uuid = as_uuid.unwrap_or(actor.uuid);
 
     // If acting as another device, verify permission
@@ -88,8 +109,8 @@ pub async fn send_message(
             .get_subscribers(&target_uuid, &SubscriptionType::MessageReceived)
             .await
             .unwrap_or_default();
-        for sub_uuid in received_subs {
-            let _ = state.bus.publish(&sub_uuid, msg_event.clone()).await;
+        if !received_subs.is_empty() {
+            let _ = state.bus.publish_many(&received_subs, msg_event.clone()).await;
         }
 
         // Fan out: message.sent subscribers of sender
@@ -98,8 +119,8 @@ pub async fn send_message(
             .get_subscribers(&sender_uuid, &SubscriptionType::MessageSent)
             .await
             .unwrap_or_default();
-        for sub_uuid in sent_subs {
-            let _ = state.bus.publish(&sub_uuid, msg_event.clone()).await;
+        if !sent_subs.is_empty() {
+            let _ = state.bus.publish_many(&sent_subs, msg_event.clone()).await;
         }
     }
 
@@ -114,25 +135,76 @@ pub async fn send_message(
 
         let broadcast_event = DeviceEvent::Broadcast((*message).clone());
 
-        for sub_uuid in &broadcast_subs {
-            // Verify sub still has permission
-            if let Ok(Some(_sub_device)) = state.store.get_device(sub_uuid).await {
-                // They subscribed, permission was valid at sub time - deliver
-                let _ = state.bus.publish(sub_uuid, broadcast_event.clone()).await;
+        // Deliver to all broadcast.sent subscribers
+        // Subscriptions have FK constraints with CASCADE delete, so stale entries
+        // are cleaned up automatically when devices are unregistered.
+        if !broadcast_subs.is_empty() {
+            let _ = state
+                .bus
+                .publish_many(&broadcast_subs, broadcast_event.clone())
+                .await;
+        }
 
-                // Also fan out to broadcast.received subscribers of each recipient
-                let br_subs = state
-                    .store
-                    .get_subscribers(sub_uuid, &SubscriptionType::BroadcastReceived)
-                    .await
-                    .unwrap_or_default();
-                for br_sub in br_subs {
-                    let _ = state.bus.publish(&br_sub, broadcast_event.clone()).await;
-                }
+        // Fan out to broadcast.received subscribers of each recipient
+        for sub_uuid in &broadcast_subs {
+            let br_subs = state
+                .store
+                .get_subscribers(sub_uuid, &SubscriptionType::BroadcastReceived)
+                .await
+                .unwrap_or_default();
+            if !br_subs.is_empty() {
+                let _ = state
+                    .bus
+                    .publish_many(&br_subs, broadcast_event.clone())
+                    .await;
             }
         }
     }
 
+    // Fire forwarders for sender (message.sent)
+    if let Ok(Some(sender_device)) = state.store.get_device(&sender_uuid).await {
+        let payload = serde_json::to_value(&*message).unwrap_or_default();
+        let executor = state.webhook_executor.clone();
+        let dev = sender_device.clone();
+        tokio::spawn(async move {
+            executor
+                .execute(&dev, ForwarderEvent::MessageSent, &payload, &[])
+                .await;
+        });
+    }
+
     MESSAGES_SENT.inc();
     Ok(Json(serde_json::json!({ "sent": true })))
+}
+
+/// Broadcast-specific params where `devices` is optional (defaults to ["*"])
+#[derive(Debug, serde::Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct BroadcastParams {
+    #[serde(default)]
+    pub devices: Option<Vec<String>>,
+    pub topic: Option<String>,
+    pub payload: Option<serde_json::Value>,
+    #[serde(flatten)]
+    pub extra: std::collections::HashMap<String, serde_json::Value>,
+}
+
+// POST /broadcasts — broadcast wrapper (forces devices: ["*"])
+pub async fn broadcast(
+    State(state): State<AppState>,
+    AuthenticatedDevice(actor, as_uuid): AuthenticatedDevice,
+    Json(params): Json<BroadcastParams>,
+) -> ApiResult<serde_json::Value> {
+    let msg_params = SendMessageParams {
+        devices: vec!["*".to_string()],
+        topic: params.topic,
+        payload: params.payload,
+        extra: params.extra,
+    };
+    send_message(
+        State(state),
+        AuthenticatedDevice(actor, as_uuid),
+        Json(msg_params),
+    )
+    .await
 }

@@ -2,21 +2,35 @@ use axum::{
     body::Body,
     http::{Request, StatusCode},
 };
-use freshblu_server::{build_router, AppState, ServerConfig};
+use freshblu_server::{build_router, AppState, RateLimiter, ServerConfig, WebhookExecutor};
 use freshblu_store::sqlite::SqliteStore;
 use serde_json::{json, Value};
 use std::sync::Arc;
 use tower::ServiceExt;
 
+fn make_state(
+    store: freshblu_store::DynStore,
+    bus: freshblu_server::DynBus,
+    config: ServerConfig,
+) -> AppState {
+    let rate_limiter = RateLimiter::new(config.rate_limit, config.rate_window);
+    let mut wh = WebhookExecutor::new(store.clone(), bus.clone());
+    wh.set_allow_localhost(true);
+    let webhook_executor = Arc::new(wh);
+    AppState {
+        store,
+        bus,
+        config,
+        rate_limiter,
+        webhook_executor,
+    }
+}
+
 async fn setup() -> axum::Router {
     let store: freshblu_store::DynStore =
         Arc::new(SqliteStore::new("sqlite::memory:").await.unwrap());
     let bus: freshblu_server::DynBus = Arc::new(freshblu_server::local_bus::LocalBus::new());
-    let state = AppState {
-        store,
-        bus,
-        config: ServerConfig::default(),
-    };
+    let state = make_state(store, bus, ServerConfig::default());
     build_router(state)
 }
 
@@ -610,7 +624,7 @@ async fn setup_with_config(config: ServerConfig) -> axum::Router {
     let store: freshblu_store::DynStore =
         Arc::new(SqliteStore::new("sqlite::memory:").await.unwrap());
     let bus: freshblu_server::DynBus = Arc::new(freshblu_server::local_bus::LocalBus::new());
-    let state = AppState { store, bus, config };
+    let state = make_state(store, bus, config);
     build_router(state)
 }
 
