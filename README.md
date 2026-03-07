@@ -73,6 +73,10 @@ docker compose -f docker/docker-compose.prod.yml up
 # 2x gateway pods + 2x router workers + NATS + PostgreSQL + Redis
 ```
 
+### DigitalOcean Droplet
+
+Single-droplet deployment with Caddy (auto-HTTPS), PostgreSQL, Redis, and NATS on a DO Block Storage volume. See [deploy/digitalocean/README.md](deploy/digitalocean/README.md).
+
 ### Custom config via env
 
 ```bash

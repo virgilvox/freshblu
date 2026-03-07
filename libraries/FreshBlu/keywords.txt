@@ -1,0 +1,37 @@
+#######################################
+# Datatypes (KEYWORD1)
+#######################################
+
+FreshBlu	KEYWORD1
+FreshBluHttp	KEYWORD1
+FreshBluMqtt	KEYWORD1
+
+#######################################
+# Methods and Functions (KEYWORD2)
+#######################################
+
+begin	KEYWORD2
+setAuth	KEYWORD2
+registerDevice	KEYWORD2
+authenticate	KEYWORD2
+whoami	KEYWORD2
+getDevice	KEYWORD2
+updateDevice	KEYWORD2
+unregister	KEYWORD2
+sendMessage	KEYWORD2
+broadcast	KEYWORD2
+status	KEYWORD2
+connect	KEYWORD2
+disconnect	KEYWORD2
+connected	KEYWORD2
+loop	KEYWORD2
+onMessage	KEYWORD2
+lastHttpStatus	KEYWORD2
+lastError	KEYWORD2
+
+#######################################
+# Constants (LITERAL1)
+#######################################
+
+FRESHBLU_MAX_RESPONSE	LITERAL1
+FRESHBLU_MQTT_BUFFER_SIZE	LITERAL1

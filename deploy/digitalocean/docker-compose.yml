@@ -1,0 +1,104 @@
+services:
+  caddy:
+    image: caddy:2-alpine
+    restart: unless-stopped
+    ports:
+      - "80:80"
+      - "443:443"
+      - "443:443/udp"
+    environment:
+      DOMAIN: "${DOMAIN}"
+    volumes:
+      - ./Caddyfile:/etc/caddy/Caddyfile:ro
+      - ${DATA_PATH:-/mnt/freshblu-data}/caddy/data:/data
+      - ${DATA_PATH:-/mnt/freshblu-data}/caddy/config:/config
+    depends_on:
+      gateway:
+        condition: service_healthy
+
+  nats:
+    image: nats:2.10-alpine
+    command: --js --cluster_name freshblu --store_dir /data
+    restart: unless-stopped
+    volumes:
+      - ${DATA_PATH:-/mnt/freshblu-data}/nats:/data
+    healthcheck:
+      test: ["CMD", "nats-server", "--signal", "ldm"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+
+  postgres:
+    image: postgres:16-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: freshblu
+      POSTGRES_USER: freshblu
+      POSTGRES_PASSWORD: "${POSTGRES_PASSWORD}"
+    volumes:
+      - ${DATA_PATH:-/mnt/freshblu-data}/postgres:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U freshblu"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  redis:
+    image: redis:7-alpine
+    restart: unless-stopped
+    command: redis-server --appendonly yes --dir /data
+    volumes:
+      - ${DATA_PATH:-/mnt/freshblu-data}/redis:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 5
+
+  gateway:
+    build:
+      context: ../../
+      dockerfile: docker/Dockerfile.gateway
+    restart: unless-stopped
+    ports:
+      - "1883:1883"
+    environment:
+      NATS_URL: nats://nats:4222
+      DATABASE_URL: postgresql://freshblu:${POSTGRES_PASSWORD}@postgres/freshblu
+      REDIS_URL: redis://redis:6379
+      FRESHBLU_HTTP_PORT: "3000"
+      FRESHBLU_MQTT_PORT: "1883"
+      FRESHBLU_PEPPER: "${FRESHBLU_PEPPER}"
+      FRESHBLU_OPEN_REGISTRATION: "${FRESHBLU_OPEN_REGISTRATION:-true}"
+      FRESHBLU_MAX_MESSAGE_SIZE: "${FRESHBLU_MAX_MESSAGE_SIZE:-1048576}"
+      RUST_LOG: "${RUST_LOG:-freshblu=info}"
+    depends_on:
+      nats:
+        condition: service_healthy
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:3000/status"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+
+  router:
+    build:
+      context: ../../
+      dockerfile: docker/Dockerfile.router
+    restart: unless-stopped
+    environment:
+      NATS_URL: nats://nats:4222
+      DATABASE_URL: postgresql://freshblu:${POSTGRES_PASSWORD}@postgres/freshblu
+      REDIS_URL: redis://redis:6379
+      RUST_LOG: "${RUST_LOG:-freshblu=info}"
+    depends_on:
+      nats:
+        condition: service_healthy
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy

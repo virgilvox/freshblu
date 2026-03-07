@@ -1,0 +1,49 @@
+#cloud-config
+
+package_update: true
+package_upgrade: true
+
+packages:
+  - apt-transport-https
+  - ca-certificates
+  - curl
+  - gnupg
+  - ufw
+  - git
+
+runcmd:
+  # Install Docker
+  - install -m 0755 -d /etc/apt/keyrings
+  - curl -fsSL https://download.docker.com/linux/ubuntu/gpg -o /etc/apt/keyrings/docker.asc
+  - chmod a+r /etc/apt/keyrings/docker.asc
+  - echo "deb [arch=$(dpkg --print-architecture) signed-by=/etc/apt/keyrings/docker.asc] https://download.docker.com/linux/ubuntu $(. /etc/os-release && echo $VERSION_CODENAME) stable" > /etc/apt/sources.list.d/docker.list
+  - apt-get update
+  - apt-get install -y docker-ce docker-ce-cli containerd.io docker-compose-plugin
+
+  # Format and mount DO Block Storage volume (skip if already formatted)
+  - blkid /dev/disk/by-id/scsi-0DO_Volume_freshblu-data || mkfs.ext4 /dev/disk/by-id/scsi-0DO_Volume_freshblu-data
+  - mkdir -p /mnt/freshblu-data
+  - mount -o defaults,nofail,discard /dev/disk/by-id/scsi-0DO_Volume_freshblu-data /mnt/freshblu-data
+  - grep -q freshblu-data /etc/fstab || echo '/dev/disk/by-id/scsi-0DO_Volume_freshblu-data /mnt/freshblu-data ext4 defaults,nofail,discard 0 2' >> /etc/fstab
+
+  # Create data directories
+  - mkdir -p /mnt/freshblu-data/{postgres,redis,nats,caddy/data,caddy/config,backups}
+
+  # Clone repo
+  - git clone https://github.com/YOUR_ORG/freshblu.git /opt/freshblu
+
+  # Firewall
+  - ufw default deny incoming
+  - ufw default allow outgoing
+  - ufw allow 22/tcp
+  - ufw allow 80/tcp
+  - ufw allow 443/tcp
+  - ufw allow 1883/tcp
+  - ufw --force enable
+
+  # Daily backup cron (2 AM)
+  - echo '0 2 * * * root /opt/freshblu/deploy/digitalocean/scripts/backup.sh >> /var/log/freshblu-backup.log 2>&1' > /etc/cron.d/freshblu-backup
+  - chmod 644 /etc/cron.d/freshblu-backup
+
+  # Reminder: copy .env.example to .env and configure before starting
+  - echo "FreshBlu provisioning complete. Configure /opt/freshblu/deploy/digitalocean/.env then run: cd /opt/freshblu/deploy/digitalocean && docker compose up -d"
