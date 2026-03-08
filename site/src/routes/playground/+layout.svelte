@@ -1,13 +1,21 @@
 <script lang="ts">
   import type { Snippet } from 'svelte';
+  import { onMount } from 'svelte';
   import { page } from '$app/state';
+  import VaultSwitcher from '$lib/components/playground/VaultSwitcher.svelte';
+  import { migrateToVault } from '$lib/stores/auth';
 
   let { children }: { children: Snippet } = $props();
 
+  onMount(() => {
+    migrateToVault();
+  });
+
   const navItems = [
-    { href: '/playground', label: 'Connect', icon: 'fa-plug' },
+    { href: '/playground', label: 'Tester', icon: 'fa-flask-vial' },
     { href: '/playground/devices', label: 'Devices', icon: 'fa-microchip' },
-    { href: '/playground/messages', label: 'Messages', icon: 'fa-paper-plane' },
+    { href: '/playground/api', label: 'API Explorer', icon: 'fa-code' },
+    { href: '/playground/visualizer', label: 'Visualizer', icon: 'fa-diagram-project' },
   ];
 </script>
 
@@ -18,6 +26,7 @@
         <i class="fa-solid fa-terminal"></i>
         Playground
       </span>
+      <VaultSwitcher />
       <div class="playground-links">
         {#each navItems as item}
           <a
@@ -39,7 +48,7 @@
 
 <style>
   .playground-layout {
-    max-width: 1200px;
+    max-width: 1400px;
     margin: 0 auto;
   }
   .playground-nav {
@@ -49,7 +58,7 @@
   .playground-nav-inner {
     display: flex;
     align-items: center;
-    gap: 24px;
+    gap: 16px;
     padding: 0 40px;
     height: 44px;
   }
@@ -63,12 +72,17 @@
     display: flex;
     align-items: center;
     gap: 8px;
+    flex-shrink: 0;
   }
   .playground-links {
     display: flex;
     gap: 16px;
     margin-left: auto;
+    overflow-x: auto;
+    -ms-overflow-style: none;
+    scrollbar-width: none;
   }
+  .playground-links::-webkit-scrollbar { display: none; }
   .playground-link {
     font-family: var(--font-ui);
     font-size: var(--text-xs);
@@ -82,6 +96,8 @@
     padding: 4px 0;
     border-bottom: 2px solid transparent;
     transition: color var(--dur-fast), border-color var(--dur-fast);
+    white-space: nowrap;
+    flex-shrink: 0;
   }
   .playground-link:hover { color: var(--ink-soft); }
   .playground-link.active {
@@ -92,8 +108,20 @@
     padding: 40px;
   }
 
-  @media (max-width: 600px) {
-    .playground-nav-inner { padding: 0 16px; }
+  @media (max-width: 768px) {
+    .playground-nav-inner {
+      padding: 0 16px;
+      flex-wrap: wrap;
+      height: auto;
+      padding-top: 8px;
+      padding-bottom: 8px;
+      gap: 8px;
+    }
+    .playground-links {
+      width: 100%;
+      margin-left: 0;
+      gap: 12px;
+    }
     .playground-content { padding: 24px 16px; }
   }
 </style>

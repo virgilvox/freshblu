@@ -1,5 +1,5 @@
 <script lang="ts">
-  import { onMount } from 'svelte';
+  import { onMount, onDestroy } from 'svelte';
   import { page } from '$app/state';
   import Tabs from '$lib/components/ui/Tabs.svelte';
   import CredentialsPanel from '$lib/components/playground/CredentialsPanel.svelte';
@@ -10,7 +10,19 @@
   import StatusDot from '$lib/components/ui/StatusDot.svelte';
   import { api } from '$lib/api/client';
   import { uuid as authUuid, token as authToken } from '$lib/stores/auth';
+  import Badge from '$lib/components/ui/Badge.svelte';
+  import { vaultDevices } from '$lib/stores/vault';
   import type { Device, Whitelists, Forwarders } from '$lib/api/types';
+  import type { VaultDevice } from '$lib/stores/vault';
+
+  let vault: VaultDevice[] = $state([]);
+  const unsubVault = vaultDevices.subscribe(v => vault = v);
+
+  onDestroy(unsubVault);
+
+  function isInVault(deviceUuid: string): boolean {
+    return vault.some(d => d.uuid === deviceUuid);
+  }
 
   const tabs = ['Properties', 'Credentials', 'Permissions', 'Webhooks'];
   let activeTab = $state(tabs[0]);
@@ -63,6 +75,9 @@
       <div class="detail-info">
         <StatusDot status={device.online ? 'online' : 'fault'} />
         <h1 class="detail-uuid">{device.uuid}</h1>
+        {#if isInVault(device.uuid)}
+          <Badge variant="pulse"><i class="fa-solid fa-lock"></i> In Vault</Badge>
+        {/if}
       </div>
       {#if device.type}
         <span class="detail-type">{device.type}</span>
