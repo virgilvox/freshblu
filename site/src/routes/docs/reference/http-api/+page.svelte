@@ -5,7 +5,7 @@
 <svelte:head><title>HTTP API Reference - FreshBlu Docs</title></svelte:head>
 <div class="doc-page">
   <h1 class="doc-title">HTTP API Reference</h1>
-  <p class="doc-intro">Complete reference for all HTTP endpoints. Authentication uses HTTP Basic Auth with <code>uuid:token</code> as username:password. Legacy headers <code>skynet_auth_uuid</code> and <code>skynet_auth_token</code> are also supported. The <code>x-meshblu-as</code> header allows acting as another device when permitted.</p>
+  <p class="doc-intro">Complete reference for all HTTP endpoints. A public instance is available at <code>https://api.freshblu.org</code>. Authentication uses HTTP Basic Auth with <code>uuid:token</code> as username:password. Legacy headers <code>skynet_auth_uuid</code> and <code>skynet_auth_token</code> are also supported. The <code>x-meshblu-as</code> header allows acting as another device when permitted.</p>
 
   <h2>Status</h2>
 

@@ -18,11 +18,11 @@
   <h2>The Stack</h2>
   <p>A production FreshBlu deployment has five services:</p>
   <ul>
-    <li><strong>NATS</strong> &mdash; message bus for cross-pod event routing (JetStream enabled)</li>
-    <li><strong>PostgreSQL</strong> &mdash; persistent device and subscription storage</li>
-    <li><strong>Redis</strong> &mdash; device presence tracking and store cache layer</li>
-    <li><strong>Gateway</strong> &mdash; HTTP/WS/MQTT server pods (scalable replicas)</li>
-    <li><strong>Router</strong> &mdash; NATS consumer that resolves subscriptions and fans out deliveries</li>
+    <li><strong>NATS</strong> - message bus for cross-pod event routing (JetStream enabled)</li>
+    <li><strong>PostgreSQL</strong> - persistent device and subscription storage</li>
+    <li><strong>Redis</strong> - device presence tracking and store cache layer</li>
+    <li><strong>Gateway</strong> - HTTP/WS/MQTT server pods (scalable replicas)</li>
+    <li><strong>Router</strong> - NATS consumer that resolves subscriptions and fans out deliveries</li>
   </ul>
 
   <h2>Docker Compose File</h2>
@@ -162,12 +162,12 @@ curl http://localhost:3000/metrics`} />
   <h2>Environment Variables</h2>
   <p>Key environment variables for the gateway and router:</p>
   <ul>
-    <li><code>NATS_URL</code> &mdash; NATS connection string. Triggers NatsBus mode (required for multi-pod).</li>
-    <li><code>DATABASE_URL</code> &mdash; PostgreSQL connection string.</li>
-    <li><code>REDIS_URL</code> &mdash; Redis connection string. Enables CachedStore and presence tracking.</li>
-    <li><code>FRESHBLU_HTTP_PORT</code> &mdash; HTTP/WS listen port (default 3000).</li>
-    <li><code>FRESHBLU_MQTT_PORT</code> &mdash; MQTT listen port (default 1883).</li>
-    <li><code>RUST_LOG</code> &mdash; Log level filter.</li>
+    <li><code>NATS_URL</code> - NATS connection string. Triggers NatsBus mode (required for multi-pod).</li>
+    <li><code>DATABASE_URL</code> - PostgreSQL connection string.</li>
+    <li><code>REDIS_URL</code> - Redis connection string. Enables CachedStore and presence tracking.</li>
+    <li><code>FRESHBLU_HTTP_PORT</code> - HTTP/WS listen port (default 3000).</li>
+    <li><code>FRESHBLU_MQTT_PORT</code> - MQTT listen port (default 1883).</li>
+    <li><code>RUST_LOG</code> - Log level filter.</li>
   </ul>
 
   <h2>Single-Pod Dev Mode</h2>

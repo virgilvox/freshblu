@@ -11,10 +11,10 @@
   <h2>Permission Categories</h2>
   <p>Every device has a <code>meshblu.whitelists</code> block with four categories:</p>
   <ul>
-    <li><strong>discover</strong> &mdash; who can view this device's properties (<code>view</code>, <code>as</code>)</li>
-    <li><strong>configure</strong> &mdash; who can update this device and receive config events (<code>update</code>, <code>sent</code>, <code>received</code>, <code>as</code>)</li>
-    <li><strong>message</strong> &mdash; who can send/receive direct messages (<code>from</code>, <code>sent</code>, <code>received</code>, <code>as</code>)</li>
-    <li><strong>broadcast</strong> &mdash; who can subscribe to broadcast events (<code>sent</code>, <code>received</code>, <code>as</code>)</li>
+    <li><strong>discover</strong> - who can view this device's properties (<code>view</code>, <code>as</code>)</li>
+    <li><strong>configure</strong> - who can update this device and receive config events (<code>update</code>, <code>sent</code>, <code>received</code>, <code>as</code>)</li>
+    <li><strong>message</strong> - who can send/receive direct messages (<code>from</code>, <code>sent</code>, <code>received</code>, <code>as</code>)</li>
+    <li><strong>broadcast</strong> - who can subscribe to broadcast events (<code>sent</code>, <code>received</code>, <code>as</code>)</li>
   </ul>
 
   <h2>Whitelist Format</h2>

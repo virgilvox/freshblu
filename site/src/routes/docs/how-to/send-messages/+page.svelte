@@ -66,12 +66,12 @@ curl -X POST http://localhost:3000/messages \\
   <p>Both produce the same result. The <code>/broadcasts</code> endpoint forces <code>devices</code> to <code>["*"]</code> internally.</p>
 
   <h2>Send Messages via WebSocket</h2>
-  <p>After authenticating over WebSocket, send a <code>message</code> action frame.</p>
+  <p>After authenticating over WebSocket, send a <code>message</code> event frame.</p>
   <CodeBlock lang="javascript" code={`const ws = new WebSocket('ws://localhost:3000/ws');
 
 ws.onopen = () => {
   ws.send(JSON.stringify({
-    action: 'identity',
+    event: 'identity',
     uuid: 'SENDER_UUID',
     token: 'SENDER_TOKEN'
   }));
@@ -79,10 +79,10 @@ ws.onopen = () => {
 
 ws.onmessage = (event) => {
   const msg = JSON.parse(event.data);
-  if (msg.action === 'ready') {
+  if (msg.event === 'ready') {
     // send a direct message
     ws.send(JSON.stringify({
-      action: 'message',
+      event: 'message',
       devices: ['TARGET_UUID'],
       payload: { command: 'toggle' }
     }));
@@ -91,7 +91,7 @@ ws.onmessage = (event) => {
 
   <h3>Broadcast via WebSocket</h3>
   <CodeBlock lang="javascript" code={`ws.send(JSON.stringify({
-  action: 'message',
+  event: 'message',
   devices: ['*'],
   payload: { reading: 42 }
 }));`} />

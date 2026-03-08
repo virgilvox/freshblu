@@ -12,8 +12,8 @@
   <p>Forwarders are stored on the device document under <code>meshblu.forwarders</code>. Each event category has a <code>sent</code> and <code>received</code> array. When an event fires, FreshBlu iterates the matching array and executes each forwarder entry.</p>
   <p>There are two forwarder types:</p>
   <ul>
-    <li><strong>webhook</strong> &mdash; sends an HTTP request to an external URL</li>
-    <li><strong>meshblu</strong> &mdash; re-emits the event as a message back into the bus</li>
+    <li><strong>webhook</strong> - sends an HTTP request to an external URL</li>
+    <li><strong>meshblu</strong> - re-emits the event as a message back into the bus</li>
   </ul>
 
   <h2>Add a Webhook Forwarder</h2>
@@ -45,7 +45,7 @@ curl -X PUT http://localhost:3000/devices/MY_UUID \\
   <h2>Webhook Request Format</h2>
   <p>FreshBlu sends the event payload as JSON in the request body. Two headers are always included:</p>
   <ul>
-    <li><code>X-Meshblu-Uuid</code> &mdash; the UUID of the device that owns the forwarder</li>
+    <li><code>X-Meshblu-Uuid</code> - the UUID of the device that owns the forwarder</li>
     <li><code>Content-Type: application/json</code></li>
   </ul>
 

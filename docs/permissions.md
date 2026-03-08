@@ -4,7 +4,7 @@ FreshBlu implements the Meshblu v2.0 whitelist-based permission system.
 
 ## Overview
 
-Every device has a `meshblu.whitelists` block that controls who can perform specific operations. Permissions are checked on the **target** device's whitelists — the device being acted upon controls who has access.
+Every device has a `meshblu.whitelists` block that controls who can perform specific operations. Permissions are checked on the **target** device's whitelists  - the device being acted upon controls who has access.
 
 ### Key Rules
 

@@ -51,7 +51,7 @@ class FreshBluClient {
 
   // Auth
   authenticate(): Promise<Device> {
-    return this.request('POST', '/authenticate');
+    return this.request('POST', '/authenticate', { uuid: this.uuid, token: this.token });
   }
 
   // Devices

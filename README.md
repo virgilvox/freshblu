@@ -4,6 +4,8 @@ A high-performance reimplementation of Meshblu/Octoblu in Rust.
 
 FreshBlu is a cross-protocol IoT machine-to-machine messaging platform. It is API-compatible with the original Meshblu, deploys as a single binary with zero dependencies (SQLite default), and scales horizontally with NATS, PostgreSQL, and Redis.
 
+Public instance available at `https://api.freshblu.org`
+
 ## What is Meshblu?
 
 Meshblu (originally SkyNet.im, later Citrix Octoblu) was an IoT backbone that treated every device, service, or API as a "device" with a UUID. Any device could message any other device regardless of protocol. The original was Node.js + MongoDB + Redis. FreshBlu keeps every API and concept, rewrites the internals in Rust.

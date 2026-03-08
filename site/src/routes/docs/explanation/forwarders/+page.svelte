@@ -11,8 +11,8 @@
   <h2>Forwarders vs Subscriptions</h2>
   <p>Subscriptions route events between devices within FreshBlu. Forwarders route events to the outside world. Both are triggered by the same event types, but they serve different purposes.</p>
   <ul>
-    <li><strong>Subscriptions</strong> &mdash; device-to-device. Subscriber must be a registered FreshBlu device. Delivery is via WebSocket, MQTT, or the internal bus.</li>
-    <li><strong>Forwarders</strong> &mdash; device-to-HTTP or device-to-self. Target is an external URL or a re-emission into the bus. No registration required on the receiving end.</li>
+    <li><strong>Subscriptions</strong> - device-to-device. Subscriber must be a registered FreshBlu device. Delivery is via WebSocket, MQTT, or the internal bus.</li>
+    <li><strong>Forwarders</strong> - device-to-HTTP or device-to-self. Target is an external URL or a re-emission into the bus. No registration required on the receiving end.</li>
   </ul>
   <p>A device can have both subscriptions and forwarders for the same event type. Both fire independently.</p>
 
@@ -50,32 +50,32 @@ pub struct ForwarderPair {
 }`} />
   <p>The eight event slots:</p>
   <ul>
-    <li><code>message.sent</code> &mdash; fires when this device sends a direct message.</li>
-    <li><code>message.received</code> &mdash; fires when this device receives a direct message.</li>
-    <li><code>broadcast.sent</code> &mdash; fires when this device sends a broadcast.</li>
-    <li><code>broadcast.received</code> &mdash; fires when this device receives a broadcast.</li>
-    <li><code>configure.sent</code> &mdash; fires when this device's config is updated.</li>
-    <li><code>configure.received</code> &mdash; fires when a config update is directed at this device.</li>
-    <li><code>unregister.sent</code> &mdash; fires when this device is deleted.</li>
-    <li><code>unregister.received</code> &mdash; fires when this device's unregistration is observed.</li>
+    <li><code>message.sent</code> - fires when this device sends a direct message.</li>
+    <li><code>message.received</code> - fires when this device receives a direct message.</li>
+    <li><code>broadcast.sent</code> - fires when this device sends a broadcast.</li>
+    <li><code>broadcast.received</code> - fires when this device receives a broadcast.</li>
+    <li><code>configure.sent</code> - fires when this device's config is updated.</li>
+    <li><code>configure.received</code> - fires when a config update is directed at this device.</li>
+    <li><code>unregister.sent</code> - fires when this device is deleted.</li>
+    <li><code>unregister.received</code> - fires when this device's unregistration is observed.</li>
   </ul>
 
   <h2>Execution Model</h2>
   <p>The <code>WebhookExecutor</code> handles all forwarder execution. Key behaviors:</p>
   <ul>
-    <li><strong>Async</strong> &mdash; forwarders fire in a spawned task. They do not block the event pipeline or the HTTP response.</li>
-    <li><strong>Concurrent webhooks</strong> &mdash; all webhook-type forwarders for a single event fire concurrently via <code>join_all</code>.</li>
-    <li><strong>Sequential meshblu</strong> &mdash; meshblu-type forwarders execute sequentially because they mutate bus state.</li>
-    <li><strong>Cap per event</strong> &mdash; maximum 10 forwarders per event slot. Entries beyond the cap are ignored.</li>
-    <li><strong>Timeout</strong> &mdash; webhook HTTP requests time out after 10 seconds.</li>
-    <li><strong>Fire and forget</strong> &mdash; failed webhooks are logged and counted in Prometheus metrics (<code>WEBHOOKS_FAILED</code>), but do not retry.</li>
+    <li><strong>Async</strong> - forwarders fire in a spawned task. They do not block the event pipeline or the HTTP response.</li>
+    <li><strong>Concurrent webhooks</strong> - all webhook-type forwarders for a single event fire concurrently via <code>join_all</code>.</li>
+    <li><strong>Sequential meshblu</strong> - meshblu-type forwarders execute sequentially because they mutate bus state.</li>
+    <li><strong>Cap per event</strong> - maximum 10 forwarders per event slot. Entries beyond the cap are ignored.</li>
+    <li><strong>Timeout</strong> - webhook HTTP requests time out after 10 seconds.</li>
+    <li><strong>Fire and forget</strong> - failed webhooks are logged and counted in Prometheus metrics (<code>WEBHOOKS_FAILED</code>), but do not retry.</li>
   </ul>
 
   <h2>Loop Detection</h2>
   <p>Meshblu forwarders can create loops: Device A forwards to itself, which triggers another forward. FreshBlu prevents this with two checks:</p>
   <ul>
-    <li><strong>Depth limit</strong> &mdash; the forwarding chain stops at depth 5.</li>
-    <li><strong>Cycle detection</strong> &mdash; if a device UUID appears twice in the forwarding chain, the loop is broken.</li>
+    <li><strong>Depth limit</strong> - the forwarding chain stops at depth 5.</li>
+    <li><strong>Cycle detection</strong> - if a device UUID appears twice in the forwarding chain, the loop is broken.</li>
   </ul>
 
   <h2>SSRF Protection</h2>

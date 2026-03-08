@@ -24,9 +24,9 @@
       </Button>
     </div>
     <div class="hero-meta">
+      <span class="hero-meta-item">Public Server <span>api.freshblu.org</span></span>
       <span class="hero-meta-item">Protocol <span>HTTP / WS / MQTT</span></span>
       <span class="hero-meta-item">Runtime <span>Rust + Axum</span></span>
-      <span class="hero-meta-item">Lineage <span>Meshblu v2</span></span>
     </div>
   </div>
   <div class="hero-mark">
@@ -84,15 +84,23 @@
   <div class="qs-steps">
     <div class="qs-step">
       <span class="qs-num">01</span>
-      <span class="qs-label">Register a device</span>
-      <CodeBlock lang="bash" code={`curl -X POST https://api.freshblu.org/devices`} />
+      <span class="qs-label">Register a device and save the credentials</span>
+      <CodeBlock lang="bash" code={`# Register a new device on the public server
+curl -s -X POST https://api.freshblu.org/devices | jq .
+
+# Response:
+# { "uuid": "d0a1f3b2-...", "token": "a8c3e9...", "meshblu": { ... } }
+
+# Save the uuid and token - the token is shown only once
+UUID="your-uuid-here"
+TOKEN="your-token-here"
+CREDS=$(echo -n "$UUID:$TOKEN" | base64)`} />
     </div>
     <div class="qs-step">
       <span class="qs-num">02</span>
-      <span class="qs-label">Send a message</span>
+      <span class="qs-label">Send a message to another device</span>
       <CodeBlock lang="bash" code={`curl -X POST https://api.freshblu.org/messages \\
-  -H "meshblu_auth_uuid: YOUR_UUID" \\
-  -H "meshblu_auth_token: YOUR_TOKEN" \\
+  -H "Authorization: Basic $CREDS" \\
   -H "Content-Type: application/json" \\
   -d '{"devices": ["TARGET_UUID"], "payload": {"hello": "world"}}'`} />
     </div>
@@ -100,7 +108,7 @@
       <span class="qs-num">03</span>
       <span class="qs-label">Listen via WebSocket</span>
       <CodeBlock lang="javascript" code={`const ws = new WebSocket('wss://api.freshblu.org/ws');
-ws.send(JSON.stringify({action: 'identity', uuid: 'YOUR_UUID', token: 'YOUR_TOKEN'}));
+ws.send(JSON.stringify({event: 'identity', uuid: 'YOUR_UUID', token: 'YOUR_TOKEN'}));
 ws.onmessage = (e) => console.log(JSON.parse(e.data));`} />
     </div>
   </div>

@@ -1,4 +1,18 @@
 <script lang="ts">
+  import { onMount } from 'svelte';
+  import hljs from 'highlight.js/lib/core';
+  import bash from 'highlight.js/lib/languages/bash';
+  import json from 'highlight.js/lib/languages/json';
+  import javascript from 'highlight.js/lib/languages/javascript';
+  import typescript from 'highlight.js/lib/languages/typescript';
+  import rust from 'highlight.js/lib/languages/rust';
+
+  hljs.registerLanguage('bash', bash);
+  hljs.registerLanguage('json', json);
+  hljs.registerLanguage('javascript', javascript);
+  hljs.registerLanguage('typescript', typescript);
+  hljs.registerLanguage('rust', rust);
+
   interface Props {
     code: string;
     lang?: string;
@@ -6,6 +20,13 @@
 
   let { code, lang = '' }: Props = $props();
   let copied = $state(false);
+  let highlighted = $state('');
+
+  onMount(() => {
+    if (lang && hljs.getLanguage(lang)) {
+      highlighted = hljs.highlight(code, { language: lang }).value;
+    }
+  });
 
   function copyCode() {
     navigator.clipboard.writeText(code);
@@ -21,7 +42,11 @@
   <button class="code-copy" onclick={copyCode} title="Copy">
     <i class="fa-solid {copied ? 'fa-check' : 'fa-copy'}"></i>
   </button>
-  <pre class="code-block"><code>{code}</code></pre>
+  {#if highlighted}
+    <pre class="code-block"><code class="hljs">{@html highlighted}</code></pre>
+  {:else}
+    <pre class="code-block"><code>{code}</code></pre>
+  {/if}
 </div>
 
 <style>
@@ -70,5 +95,53 @@
   .code-copy:hover {
     color: var(--pulse);
     border-color: var(--pulse);
+  }
+
+  /* highlight.js theme - matched to void/pulse palette */
+  :global(.hljs) {
+    color: var(--ink-soft);
+  }
+  :global(.hljs-keyword),
+  :global(.hljs-selector-tag),
+  :global(.hljs-built_in),
+  :global(.hljs-name) {
+    color: var(--pulse);
+  }
+  :global(.hljs-string),
+  :global(.hljs-attr) {
+    color: var(--signal);
+  }
+  :global(.hljs-number),
+  :global(.hljs-literal) {
+    color: #d19a66;
+  }
+  :global(.hljs-comment) {
+    color: var(--ink-muted);
+    font-style: italic;
+  }
+  :global(.hljs-variable),
+  :global(.hljs-template-variable),
+  :global(.hljs-params) {
+    color: #e5c07b;
+  }
+  :global(.hljs-type),
+  :global(.hljs-title) {
+    color: #61afef;
+  }
+  :global(.hljs-function) {
+    color: #61afef;
+  }
+  :global(.hljs-meta) {
+    color: var(--ink-muted);
+  }
+  :global(.hljs-punctuation),
+  :global(.hljs-operator) {
+    color: var(--ink-soft);
+  }
+  :global(.hljs-property) {
+    color: #e06c75;
+  }
+  :global(.hljs-section) {
+    color: var(--pulse);
   }
 </style>
