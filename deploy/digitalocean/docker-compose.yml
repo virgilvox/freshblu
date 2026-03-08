@@ -18,15 +18,16 @@ services:
 
   nats:
     image: nats:2.10-alpine
-    command: --js --cluster_name freshblu --store_dir /data
+    command: --js --cluster_name freshblu --store_dir /data -m 8222
     restart: unless-stopped
     volumes:
       - ${DATA_PATH:-/mnt/freshblu-data}/nats:/data
     healthcheck:
-      test: ["CMD", "nats-server", "--signal", "ldm"]
+      test: ["CMD-SHELL", "wget -qO- http://localhost:8222/healthz || exit 1"]
       interval: 10s
       timeout: 5s
       retries: 3
+      start_period: 5s
 
   postgres:
     image: postgres:16-alpine
