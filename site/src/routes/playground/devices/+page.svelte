@@ -4,8 +4,7 @@
   import Badge from '$lib/components/ui/Badge.svelte';
   import Toast from '$lib/components/ui/Toast.svelte';
   import DeviceCard from '$lib/components/playground/DeviceCard.svelte';
-  import { FreshBluClient, api, syncApiBaseUrl } from '$lib/api/client';
-  import { PUBLIC_API_URL } from '$env/static/public';
+  import { FreshBluClient, api, syncApiBaseUrl, getServerUrl } from '$lib/api/client';
   import { uuid, token } from '$lib/stores/auth';
   import { devices } from '$lib/stores/devices';
   import { vaultDevices, addToVault, removeFromVault, setActiveDevice } from '$lib/stores/vault';
@@ -49,7 +48,7 @@
   });
 
   async function registerAndVault() {
-    const serverUrl = localStorage.getItem('freshblu_server_url') || PUBLIC_API_URL || 'http://localhost:3000';
+    const serverUrl = getServerUrl();
     const client = new FreshBluClient(serverUrl);
     const res = await client.register();
     const newDevice: Device = {

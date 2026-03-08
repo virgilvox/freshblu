@@ -15,4 +15,5 @@ static_sites:
     catchall_document: 200.html
     envs:
       - key: PUBLIC_API_URL
+        scope: BUILD_TIME
         value: "https://api.freshblu.org"

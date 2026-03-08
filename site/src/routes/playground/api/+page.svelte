@@ -46,10 +46,9 @@
   let selected: Endpoint | null = $state(null);
   let paramValues: Record<string, string> = $state({});
   let bodyText = $state('');
-  import { PUBLIC_API_URL } from '$env/static/public';
+  import { getServerUrl } from '$lib/api/client';
 
-  const defaultUrl = PUBLIC_API_URL || 'http://localhost:3000';
-  let serverUrl = $state(defaultUrl);
+  let serverUrl = $state('');
   let executing = $state(false);
   let responseStatus = $state<number | null>(null);
   let responseBody = $state('');
@@ -75,8 +74,7 @@
   });
 
   onMount(() => {
-    const stored = localStorage.getItem('freshblu_server_url');
-    if (stored) serverUrl = stored;
+    serverUrl = getServerUrl();
     selected = endpoints[0];
   });
 
