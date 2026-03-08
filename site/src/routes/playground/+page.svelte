@@ -4,7 +4,7 @@
   import Badge from '$lib/components/ui/Badge.svelte';
   import Toast from '$lib/components/ui/Toast.svelte';
   import { FreshBluClient, api, syncApiBaseUrl, getServerUrl, saveServerUrl } from '$lib/api/client';
-  import { addToVault, setActiveDevice, vaultDevices } from '$lib/stores/vault';
+  import { addToVault, setActiveDevice, vaultDevices, setPrimaryDevice, hasPrimaryDevice, getPrimaryCredentials, getPrimaryDevice, primaryUuid } from '$lib/stores/vault';
   import { uuid as authUuid, token as authToken } from '$lib/stores/auth';
   import type { VaultDevice } from '$lib/stores/vault';
 
@@ -17,13 +17,24 @@
   let lastRegistered: { uuid: string; token: string } | null = $state(null);
   let copied = $state('');
   let toast: Toast;
+  let showPrimarySave = $state(false);
+  let primarySaved = $state(false);
+
+  // Recovery state
+  let recoverUuid = $state('');
+  let recoverToken = $state('');
+  let recovering = $state(false);
 
   let vault: VaultDevice[] = $state([]);
   const unsubVault = vaultDevices.subscribe(v => vault = v);
 
+  let currentPrimary = $state('');
+  const unsubPrimary = primaryUuid.subscribe(v => currentPrimary = v);
+
   onMount(() => {
     serverUrl = getServerUrl();
-    return unsubVault;
+    primarySaved = localStorage.getItem('freshblu_primary_saved') === '1';
+    return () => { unsubVault(); unsubPrimary(); };
   });
 
   async function handlePing() {
@@ -57,11 +68,80 @@
       authToken.set(res.token);
       syncApiBaseUrl();
       api.setCredentials(res.uuid, res.token);
-      toast.show('Device registered and added to vault', 'success');
+
+      if (!hasPrimaryDevice()) {
+        // First device — make it the primary
+        setPrimaryDevice(res.uuid);
+        showPrimarySave = true;
+        toast.show('Primary device created. Save your master key!', 'success');
+      } else {
+        // Auto-claim with primary credentials
+        const primaryCreds = getPrimaryCredentials();
+        if (primaryCreds) {
+          try {
+            const primaryClient = new FreshBluClient(serverUrl);
+            primaryClient.setCredentials(primaryCreds.uuid, primaryCreds.token);
+            await primaryClient.claimDevice(res.uuid);
+            toast.show('Device registered and claimed by primary', 'success');
+          } catch {
+            toast.show('Device registered but claim failed — not recoverable', 'warn');
+          }
+        } else {
+          toast.show('Device registered (primary credentials not in vault)', 'success');
+        }
+      }
     } catch (e) {
       toast.show((e as Error).message, 'error');
     }
     registering = false;
+  }
+
+  async function handleRecover() {
+    recovering = true;
+    try {
+      saveServerUrl(serverUrl);
+      const client = new FreshBluClient(serverUrl);
+      client.setCredentials(recoverUuid, recoverToken);
+
+      // Verify credentials
+      await client.whoami();
+
+      // Add primary to vault
+      await addToVault({ uuid: recoverUuid, token: recoverToken, addedAt: Date.now() });
+      setPrimaryDevice(recoverUuid);
+      setActiveDevice(recoverUuid);
+      authUuid.set(recoverUuid);
+      authToken.set(recoverToken);
+      syncApiBaseUrl();
+      api.setCredentials(recoverUuid, recoverToken);
+
+      // Fetch owned devices and generate fresh tokens
+      const owned = await client.myDevices();
+      let recovered = 0;
+      for (const device of owned) {
+        if (device.uuid === recoverUuid) continue;
+        try {
+          const tokenRes = await client.generateToken(device.uuid);
+          await addToVault({ uuid: device.uuid, token: tokenRes.token, addedAt: Date.now() });
+          recovered++;
+        } catch {
+          // Skip devices we can't generate tokens for
+        }
+      }
+
+      toast.show(`Vault restored: ${recovered + 1} device${recovered > 0 ? 's' : ''} recovered`, 'success');
+      recoverUuid = '';
+      recoverToken = '';
+    } catch (e) {
+      toast.show(`Recovery failed: ${(e as Error).message}`, 'error');
+    }
+    recovering = false;
+  }
+
+  function handlePrimarySaved() {
+    primarySaved = true;
+    showPrimarySave = false;
+    localStorage.setItem('freshblu_primary_saved', '1');
   }
 
   async function copyToClipboard(text: string, label: string) {
@@ -123,7 +203,58 @@
         </div>
       </div>
     {/if}
+
+    {#if showPrimarySave && lastRegistered}
+      <div class="master-key-banner">
+        <div class="master-key-header">
+          <i class="fa-solid fa-key"></i>
+          <span>Save Your Master Key</span>
+        </div>
+        <p class="master-key-desc">This is your primary device. Save these credentials somewhere safe — they're needed to recover your vault on a new machine.</p>
+        <div class="credentials-result">
+          <div class="cred-row">
+            <span class="cred-label">UUID</span>
+            <code class="cred-value">{lastRegistered.uuid}</code>
+            <button class="copy-btn" onclick={() => copyToClipboard(lastRegistered!.uuid, 'pk-uuid')} title="Copy UUID">
+              <i class="fa-solid {copied === 'pk-uuid' ? 'fa-check' : 'fa-copy'}"></i>
+            </button>
+          </div>
+          <div class="cred-row">
+            <span class="cred-label">Token</span>
+            <code class="cred-value">{lastRegistered.token}</code>
+            <button class="copy-btn" onclick={() => copyToClipboard(lastRegistered!.token, 'pk-token')} title="Copy Token">
+              <i class="fa-solid {copied === 'pk-token' ? 'fa-check' : 'fa-copy'}"></i>
+            </button>
+          </div>
+        </div>
+        <div class="master-key-actions">
+          <Button size="sm" onclick={() => copyToClipboard(`${lastRegistered!.uuid}:${lastRegistered!.token}`, 'pk-both')}>
+            <i class="fa-solid {copied === 'pk-both' ? 'fa-check' : 'fa-copy'}"></i>
+            {copied === 'pk-both' ? 'Copied!' : 'Copy Both'}
+          </Button>
+          <Button size="sm" variant="ghost" onclick={handlePrimarySaved}>
+            I have saved my credentials
+          </Button>
+        </div>
+      </div>
+    {/if}
   </section>
+
+  <!-- Recover Vault -->
+  {#if vault.length === 0}
+    <section class="section">
+      <h2 class="section-title">Recover Vault</h2>
+      <p class="section-desc">Enter your primary device credentials to restore all owned devices.</p>
+      <div class="register-form">
+        <input class="reg-field" placeholder="Primary UUID" bind:value={recoverUuid} aria-label="Recovery UUID" />
+        <input class="reg-field" type="password" placeholder="Primary Token" bind:value={recoverToken} aria-label="Recovery Token" />
+        <Button size="sm" variant="signal" onclick={handleRecover} disabled={recovering || !recoverUuid || !recoverToken}>
+          <i class="fa-solid fa-rotate"></i>
+          {recovering ? 'Recovering...' : 'Recover'}
+        </Button>
+      </div>
+    </section>
+  {/if}
 
   <!-- What's Next -->
   <section class="section">
@@ -331,6 +462,38 @@
     letter-spacing: 0.1em;
   }
   .vault-link:hover { color: var(--ink); }
+
+  .master-key-banner {
+    border: 1px solid var(--warn);
+    background: var(--void-lift);
+    padding: 16px;
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+  }
+  .master-key-header {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-family: var(--font-display);
+    font-size: var(--text-sm);
+    font-weight: 700;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: var(--warn);
+  }
+  .master-key-desc {
+    font-family: var(--font-ui);
+    font-size: var(--text-xs);
+    color: var(--ink-soft);
+    line-height: var(--leading-normal);
+  }
+  .master-key-actions {
+    display: flex;
+    gap: 8px;
+    align-items: center;
+    flex-wrap: wrap;
+  }
 
   @media (max-width: 600px) {
     .server-bar { flex-wrap: wrap; }
