@@ -110,7 +110,10 @@ pub async fn send_message(
             .await
             .unwrap_or_default();
         if !received_subs.is_empty() {
-            let _ = state.bus.publish_many(&received_subs, msg_event.clone()).await;
+            let _ = state
+                .bus
+                .publish_many(&received_subs, msg_event.clone())
+                .await;
         }
 
         // Fan out: message.sent subscribers of sender

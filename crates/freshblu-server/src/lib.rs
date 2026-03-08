@@ -89,10 +89,7 @@ pub fn build_router(state: AppState) -> Router {
         // My devices
         .route("/mydevices", get(handlers::devices::my_devices))
         // Claim device
-        .route(
-            "/claimdevice/:uuid",
-            post(handlers::devices::claim_device),
-        )
+        .route("/claimdevice/:uuid", post(handlers::devices::claim_device))
         // Public key endpoints
         .route(
             "/devices/:uuid/publickey",
@@ -121,15 +118,9 @@ pub fn build_router(state: AppState) -> Router {
             "/devices/:uuid/tokens/:token",
             delete(handlers::tokens::revoke_token),
         )
-        .route(
-            "/devices/:uuid/token",
-            post(handlers::tokens::reset_token),
-        )
+        .route("/devices/:uuid/token", post(handlers::tokens::reset_token))
         // Token search
-        .route(
-            "/search/tokens",
-            post(handlers::tokens::search_tokens),
-        )
+        .route("/search/tokens", post(handlers::tokens::search_tokens))
         // Firehose / HTTP streaming
         .route("/subscribe", get(handlers::subscribe::subscribe))
         // WebSocket

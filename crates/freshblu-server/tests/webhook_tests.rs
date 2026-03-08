@@ -129,7 +129,12 @@ async fn meshblu_forwarder_detects_loop() {
     // This should not panic and should detect the loop
     state
         .webhook_executor
-        .execute(&device, freshblu_core::forwarder::ForwarderEvent::MessageSent, &payload, &[uuid_parsed])
+        .execute(
+            &device,
+            freshblu_core::forwarder::ForwarderEvent::MessageSent,
+            &payload,
+            &[uuid_parsed],
+        )
         .await;
 }
 
