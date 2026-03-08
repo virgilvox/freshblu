@@ -273,15 +273,21 @@ pub async fn my_devices(
     State(state): State<AppState>,
     AuthenticatedDevice(actor, _): AuthenticatedDevice,
 ) -> ApiResult<Vec<DeviceView>> {
-    // Return all devices owned by this actor (where they're the creator)
-    // Simplified: just return the device itself
-    let device = state
+    let self_device = state
         .store
         .get_device(&actor.uuid)
         .await?
         .ok_or(FreshBluError::NotFound)
         .map_err(ApiError::from)?;
-    Ok(Json(vec![device.to_view()]))
+
+    let mut owned = state.store.find_by_owner(&actor.uuid).await?;
+
+    // Deduplicate: add self if not already in owned list
+    if !owned.iter().any(|d| d.uuid == actor.uuid) {
+        owned.insert(0, self_device.to_view());
+    }
+
+    Ok(Json(owned))
 }
 
 // POST /claimdevice/:uuid

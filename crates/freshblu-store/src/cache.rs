@@ -154,6 +154,10 @@ impl DeviceStore for CachedStore {
         self.inner.search_devices(filters).await
     }
 
+    async fn find_by_owner(&self, owner: &Uuid) -> Result<Vec<DeviceView>> {
+        self.inner.find_by_owner(owner).await
+    }
+
     async fn authenticate(&self, uuid: &Uuid, token: &str) -> Result<Option<Device>> {
         let mut conn = self.redis.clone();
         let key = Self::auth_key(uuid, token);

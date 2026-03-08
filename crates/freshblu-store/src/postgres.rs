@@ -235,6 +235,27 @@ impl DeviceStore for PostgresStore {
         Ok(results)
     }
 
+    async fn find_by_owner(&self, owner: &Uuid) -> Result<Vec<DeviceView>> {
+        let rows = sqlx::query(
+            "SELECT data, online FROM devices WHERE data #>> '{meshblu,owner}' = $1 LIMIT 100",
+        )
+        .bind(owner.to_string())
+        .fetch_all(&self.pool)
+        .await
+        .map_err(|e| FreshBluError::Storage(e.to_string()))?;
+
+        let mut results = Vec::new();
+        for row in rows {
+            let data: Value = row.get("data");
+            let online: bool = row.get("online");
+            if let Ok(mut device) = Self::deserialize_device(&data) {
+                device.online = online;
+                results.push(device.to_view());
+            }
+        }
+        Ok(results)
+    }
+
     async fn authenticate(&self, uuid: &Uuid, token: &str) -> Result<Option<Device>> {
         let now_ts = chrono::Utc::now().timestamp();
         let rows = sqlx::query(
