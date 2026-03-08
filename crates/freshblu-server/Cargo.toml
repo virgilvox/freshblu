@@ -17,9 +17,9 @@ postgres = ["freshblu-store/postgres"]
 cache = ["freshblu-store/cache"]
 
 [dependencies]
-freshblu-core = { path = "../freshblu-core", version = "0.1.2" }
-freshblu-store = { path = "../freshblu-store", version = "0.1.2", default-features = false }
-freshblu-proto = { path = "../freshblu-proto", version = "0.1.2" }
+freshblu-core = { path = "../freshblu-core", version = "1.0.0" }
+freshblu-store = { path = "../freshblu-store", version = "1.0.0", default-features = false }
+freshblu-proto = { path = "../freshblu-proto", version = "1.0.0" }
 
 tokio = { workspace = true }
 tokio-stream = { workspace = true }

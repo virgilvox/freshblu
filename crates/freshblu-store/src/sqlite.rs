@@ -285,6 +285,27 @@ impl DeviceStore for SqliteStore {
         Ok(results)
     }
 
+    async fn find_by_owner(&self, owner: &Uuid) -> Result<Vec<DeviceView>> {
+        let rows = sqlx::query(
+            "SELECT data, online FROM devices WHERE json_extract(data, '$.meshblu.owner') = ? LIMIT 100",
+        )
+        .bind(owner.to_string())
+        .fetch_all(&self.pool)
+        .await
+        .map_err(|e| FreshBluError::Storage(e.to_string()))?;
+
+        let mut results = Vec::new();
+        for row in rows {
+            let data: String = row.get("data");
+            let online: i64 = row.get("online");
+            if let Ok(mut device) = Self::deserialize_device(&data) {
+                device.online = online != 0;
+                results.push(device.to_view());
+            }
+        }
+        Ok(results)
+    }
+
     async fn authenticate(&self, uuid: &Uuid, token: &str) -> Result<Option<Device>> {
         // Get all non-expired tokens for this device
         let now_ts = chrono::Utc::now().timestamp();

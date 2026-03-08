@@ -659,6 +659,70 @@ async fn revoke_tokens_by_tag() {
 }
 
 #[tokio::test]
+async fn find_by_owner_returns_claimed_devices() {
+    let store = new_store().await;
+
+    // Register owner and two child devices
+    let (owner, _) = store
+        .register(RegisterParams {
+            device_type: Some("owner".into()),
+            ..Default::default()
+        })
+        .await
+        .unwrap();
+    let (child1, _) = store
+        .register(RegisterParams {
+            device_type: Some("child".into()),
+            ..Default::default()
+        })
+        .await
+        .unwrap();
+    let (child2, _) = store
+        .register(RegisterParams {
+            device_type: Some("child".into()),
+            ..Default::default()
+        })
+        .await
+        .unwrap();
+    let (_unowned, _) = store
+        .register(RegisterParams {
+            device_type: Some("other".into()),
+            ..Default::default()
+        })
+        .await
+        .unwrap();
+
+    // Claim both children
+    store.claim_device(&child1.uuid, &owner.uuid).await.unwrap();
+    store.claim_device(&child2.uuid, &owner.uuid).await.unwrap();
+
+    let owned = store.find_by_owner(&owner.uuid).await.unwrap();
+    assert_eq!(owned.len(), 2, "should find exactly 2 owned devices");
+    let uuids: Vec<_> = owned.iter().map(|d| d.uuid).collect();
+    assert!(uuids.contains(&child1.uuid));
+    assert!(uuids.contains(&child2.uuid));
+}
+
+#[tokio::test]
+async fn find_by_owner_excludes_unclaimed() {
+    let store = new_store().await;
+
+    let (device, _) = store
+        .register(RegisterParams {
+            device_type: Some("test".into()),
+            ..Default::default()
+        })
+        .await
+        .unwrap();
+
+    let owned = store.find_by_owner(&device.uuid).await.unwrap();
+    assert!(
+        owned.is_empty(),
+        "unclaimed devices should not appear in find_by_owner"
+    );
+}
+
+#[tokio::test]
 async fn concurrent_register_50() {
     let store = std::sync::Arc::new(new_store().await);
     let semaphore = std::sync::Arc::new(tokio::sync::Semaphore::new(5));

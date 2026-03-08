@@ -39,6 +39,9 @@ pub trait DeviceStore: Send + Sync + 'static {
     /// Search devices by property filters (caller must check permissions)
     async fn search_devices(&self, filters: &HashMap<String, Value>) -> Result<Vec<DeviceView>>;
 
+    /// Find all devices owned by the given UUID
+    async fn find_by_owner(&self, owner: &Uuid) -> Result<Vec<DeviceView>>;
+
     // -- Auth --
 
     /// Verify uuid + token, returns device if valid
