@@ -4,10 +4,10 @@
   import Badge from '$lib/components/ui/Badge.svelte';
   import Toast from '$lib/components/ui/Toast.svelte';
   import DeviceCard from '$lib/components/playground/DeviceCard.svelte';
-  import { api } from '$lib/api/client';
+  import { FreshBluClient, api } from '$lib/api/client';
   import { uuid, token } from '$lib/stores/auth';
   import { devices } from '$lib/stores/devices';
-  import { vaultDevices, addToVault, removeFromVault } from '$lib/stores/vault';
+  import { vaultDevices, addToVault, removeFromVault, setActiveDevice } from '$lib/stores/vault';
   import { goto } from '$app/navigation';
   import type { Device } from '$lib/api/types';
   import type { VaultDevice } from '$lib/stores/vault';
@@ -33,23 +33,23 @@
     let u = '', t = '';
     uuid.subscribe(v => u = v)();
     token.subscribe(v => t = v)();
-    if (!u || !t) {
-      goto('/playground');
-      return;
-    }
-    api.setCredentials(u, t);
-    try {
-      const me = await api.whoami();
-      const mine = await api.myDevices();
-      devices.set([me, ...mine.filter(d => d.uuid !== me.uuid)]);
-    } catch {
-      devices.set([]);
+    if (u && t) {
+      api.setCredentials(u, t);
+      try {
+        const me = await api.whoami();
+        const mine = await api.myDevices();
+        devices.set([me, ...mine.filter(d => d.uuid !== me.uuid)]);
+      } catch {
+        devices.set([]);
+      }
     }
     loading = false;
   });
 
   async function registerAndVault() {
-    const res = await api.register();
+    const serverUrl = localStorage.getItem('freshblu_server_url') || 'http://localhost:3000';
+    const client = new FreshBluClient(serverUrl);
+    const res = await client.register();
     const newDevice: Device = {
       uuid: res.uuid,
       online: res.online,
@@ -57,6 +57,11 @@
     };
     devices.set([...deviceList, newDevice]);
     await addToVault({ uuid: res.uuid, token: res.token, addedAt: Date.now() });
+    setActiveDevice(res.uuid);
+    uuid.set(res.uuid);
+    token.set(res.token);
+    api.setCredentials(res.uuid, res.token);
+    toast.show('Device registered and added to vault', 'success');
   }
 
   async function handleRemoveFromVault(deviceUuid: string) {
