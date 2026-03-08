@@ -79,7 +79,7 @@
   <!-- Server Connection -->
   <div class="server-bar">
     <span class="bar-label">Server</span>
-    <input class="server-field" bind:value={serverUrl} placeholder="http://localhost:3000" aria-label="Server URL" />
+    <input class="server-field" bind:value={serverUrl} placeholder="https://api.freshblu.org" aria-label="Server URL" />
     <Button size="sm" variant="ghost" onclick={handlePing} disabled={pinging}>
       {pinging ? '...' : 'Ping'}
     </Button>
