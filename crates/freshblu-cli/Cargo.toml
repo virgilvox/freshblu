@@ -15,7 +15,7 @@ name = "freshblu"
 path = "src/main.rs"
 
 [dependencies]
-freshblu-core = { path = "../freshblu-core", version = "0.1.1" }
+freshblu-core = { path = "../freshblu-core", version = "0.1.2" }
 tokio = { workspace = true }
 serde = { workspace = true }
 serde_json = { workspace = true }
