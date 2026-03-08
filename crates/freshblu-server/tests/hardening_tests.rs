@@ -52,8 +52,7 @@ async fn search_tokens_scoped_to_authenticated_device() {
     )
     .await;
     assert_eq!(resp.status(), StatusCode::OK);
-    let tokens: Vec<serde_json::Value> =
-        serde_json::from_value(response_json(resp).await).unwrap();
+    let tokens: Vec<serde_json::Value> = serde_json::from_value(response_json(resp).await).unwrap();
     assert!(tokens.is_empty(), "A must not see B's tokens");
 
     // A tries to override uuid in the query — still scoped to A
@@ -66,8 +65,7 @@ async fn search_tokens_scoped_to_authenticated_device() {
     )
     .await;
     assert_eq!(resp.status(), StatusCode::OK);
-    let tokens: Vec<serde_json::Value> =
-        serde_json::from_value(response_json(resp).await).unwrap();
+    let tokens: Vec<serde_json::Value> = serde_json::from_value(response_json(resp).await).unwrap();
     assert!(
         tokens.is_empty(),
         "A must not see B's tokens even when overriding uuid"
@@ -82,8 +80,7 @@ async fn search_tokens_scoped_to_authenticated_device() {
         Some(json!({ "tag": "secret-b" })),
     )
     .await;
-    let tokens: Vec<serde_json::Value> =
-        serde_json::from_value(response_json(resp).await).unwrap();
+    let tokens: Vec<serde_json::Value> = serde_json::from_value(response_json(resp).await).unwrap();
     assert_eq!(tokens.len(), 1);
     assert_eq!(tokens[0]["tag"], "secret-b");
 }
@@ -166,7 +163,10 @@ async fn ws_drops_oversized_message() {
     .unwrap();
 
     let received = recv_json(&mut ws_b).await;
-    assert!(received.is_some(), "small message after oversized must still work");
+    assert!(
+        received.is_some(),
+        "small message after oversized must still work"
+    );
     assert_eq!(received.unwrap()["payload"], "hi");
 }
 
@@ -241,12 +241,7 @@ async fn ws_message_fires_forwarders() {
     let payload = json!({"from": "ws"});
     state
         .webhook_executor
-        .execute(
-            &device_a,
-            ForwarderEvent::MessageSent,
-            &payload,
-            &[],
-        )
+        .execute(&device_a, ForwarderEvent::MessageSent, &payload, &[])
         .await;
 
     // wiremock expect(1) verifies on drop
@@ -269,12 +264,7 @@ async fn ws_update_fires_configure_forwarders() {
     let (uuid, _) = register_device(&state).await;
     let uuid_parsed: uuid::Uuid = uuid.parse().unwrap();
 
-    let mut device = state
-        .store
-        .get_device(&uuid_parsed)
-        .await
-        .unwrap()
-        .unwrap();
+    let mut device = state.store.get_device(&uuid_parsed).await.unwrap().unwrap();
     device.meshblu.forwarders = Some(Forwarders {
         configure: ForwarderPair {
             sent: vec![ForwarderEntry::Webhook(WebhookForwarder {
@@ -700,11 +690,7 @@ async fn meshblu_forwarder_detects_circular_loop() {
         .await;
 
     // Bus should NOT have received any message (loop was detected)
-    let result = tokio::time::timeout(
-        std::time::Duration::from_millis(200),
-        rx.recv(),
-    )
-    .await;
+    let result = tokio::time::timeout(std::time::Duration::from_millis(200), rx.recv()).await;
     assert!(
         result.is_err(),
         "no message should be published when loop is detected"

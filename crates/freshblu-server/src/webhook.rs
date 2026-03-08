@@ -135,11 +135,7 @@ impl WebhookExecutor {
         match req.send().await {
             Ok(resp) => {
                 WEBHOOKS_SENT.inc();
-                debug!(
-                    "Webhook to {} returned {}",
-                    wh.url,
-                    resp.status().as_u16()
-                );
+                debug!("Webhook to {} returned {}", wh.url, resp.status().as_u16());
             }
             Err(e) => {
                 WEBHOOKS_FAILED.inc();
@@ -212,7 +208,12 @@ fn is_safe_url(url_str: &str, allow_localhost: bool) -> bool {
     }
 
     // Block common localhost names
-    if host == "localhost" || host == "127.0.0.1" || host == "::1" || host == "[::1]" || host == "0.0.0.0" {
+    if host == "localhost"
+        || host == "127.0.0.1"
+        || host == "::1"
+        || host == "[::1]"
+        || host == "0.0.0.0"
+    {
         return false;
     }
 
@@ -244,9 +245,7 @@ fn is_private_ip(ip: IpAddr) -> bool {
                 || v4.is_unspecified()
                 || v4.octets()[0] == 169 && v4.octets()[1] == 254 // link-local
         }
-        IpAddr::V6(v6) => {
-            v6.is_loopback() || v6.is_unspecified()
-        }
+        IpAddr::V6(v6) => v6.is_loopback() || v6.is_unspecified(),
     }
 }
 
@@ -283,8 +282,14 @@ mod tests {
 
     #[test]
     fn safe_url_blocks_metadata() {
-        assert!(!is_safe_url("http://169.254.169.254/latest/meta-data/", false));
-        assert!(!is_safe_url("http://metadata.google.internal/computeMetadata/", false));
+        assert!(!is_safe_url(
+            "http://169.254.169.254/latest/meta-data/",
+            false
+        ));
+        assert!(!is_safe_url(
+            "http://metadata.google.internal/computeMetadata/",
+            false
+        ));
     }
 
     #[test]

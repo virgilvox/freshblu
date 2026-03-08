@@ -25,8 +25,7 @@ pub struct SqliteStore {
 
 impl SqliteStore {
     pub async fn new(database_url: &str) -> anyhow::Result<Self> {
-        let opts = SqliteConnectOptions::from_str(database_url)?
-            .create_if_missing(true);
+        let opts = SqliteConnectOptions::from_str(database_url)?.create_if_missing(true);
         let pool = SqlitePoolOptions::new()
             .max_connections(50)
             .connect_with(opts)
@@ -475,7 +474,9 @@ impl DeviceStore for SqliteStore {
         &self,
         query: &std::collections::HashMap<String, serde_json::Value>,
     ) -> Result<Vec<TokenRecord>> {
-        let mut sql = String::from("SELECT device_uuid, hash, created_at, expires_on, tag FROM tokens WHERE 1=1");
+        let mut sql = String::from(
+            "SELECT device_uuid, hash, created_at, expires_on, tag FROM tokens WHERE 1=1",
+        );
         let mut binds: Vec<String> = Vec::new();
 
         if let Some(device_uuid) = query.get("uuid").and_then(|v| v.as_str()) {

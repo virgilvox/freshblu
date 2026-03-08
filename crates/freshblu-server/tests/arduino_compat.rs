@@ -192,11 +192,7 @@ fn arduino_base64_matches_standard() {
     for input in &test_cases {
         let arduino = arduino_base64(input.as_bytes());
         let standard = base64::engine::general_purpose::STANDARD.encode(input.as_bytes());
-        assert_eq!(
-            arduino, standard,
-            "Base64 mismatch for input {:?}",
-            input
-        );
+        assert_eq!(arduino, standard, "Base64 mismatch for input {:?}", input);
     }
 }
 
@@ -232,7 +228,10 @@ async fn raw_tcp_register_device() {
     assert_eq!(resp.status, 200);
 
     let json = parse_json(&resp.body);
-    assert!(json["uuid"].as_str().is_some(), "response must contain uuid");
+    assert!(
+        json["uuid"].as_str().is_some(),
+        "response must contain uuid"
+    );
     assert!(
         json["token"].as_str().is_some(),
         "response must contain token"
@@ -351,13 +350,7 @@ async fn raw_tcp_get_device() {
     let port = port_from_ws_url(&ws_url);
 
     // Register device A
-    let resp = arduino_request(
-        port,
-        "POST",
-        "/devices",
-        None,
-        Some(r#"{"type":"target"}"#),
-    );
+    let resp = arduino_request(port, "POST", "/devices", None, Some(r#"{"type":"target"}"#));
     let reg_a = parse_json(&resp.body);
     let uuid_a = reg_a["uuid"].as_str().unwrap().to_string();
 
@@ -395,7 +388,13 @@ async fn raw_tcp_update_device() {
     let port = port_from_ws_url(&ws_url);
 
     // Register
-    let resp = arduino_request(port, "POST", "/devices", None, Some(r#"{"type":"updatable"}"#));
+    let resp = arduino_request(
+        port,
+        "POST",
+        "/devices",
+        None,
+        Some(r#"{"type":"updatable"}"#),
+    );
     let reg = parse_json(&resp.body);
     let uuid = reg["uuid"].as_str().unwrap().to_string();
     let token = reg["token"].as_str().unwrap().to_string();
@@ -458,13 +457,7 @@ async fn raw_tcp_send_message() {
     let port = port_from_ws_url(&ws_url);
 
     // Register sender via raw TCP (as Arduino would)
-    let resp = arduino_request(
-        port,
-        "POST",
-        "/devices",
-        None,
-        Some(r#"{"type":"sender"}"#),
-    );
+    let resp = arduino_request(port, "POST", "/devices", None, Some(r#"{"type":"sender"}"#));
     assert_eq!(resp.status, 200);
     let reg_s = parse_json(&resp.body);
     let sender_uuid = reg_s["uuid"].as_str().unwrap().to_string();
@@ -539,9 +532,7 @@ async fn raw_tcp_broadcast() {
     let mut ws_sub = connect_and_auth(&ws_url, &sub_uuid, &sub_token).await;
 
     // Broadcast via raw TCP — exactly as Arduino broadcast() formats it
-    let msg_body = format!(
-        r#"{{"devices":["*"],"payload":{{"temp":72.4,"unit":"F"}}}}"#
-    );
+    let msg_body = format!(r#"{{"devices":["*"],"payload":{{"temp":72.4,"unit":"F"}}}}"#);
     let resp = arduino_request(
         port,
         "POST",
@@ -708,35 +699,17 @@ async fn raw_tcp_full_lifecycle() {
     assert_eq!(msg["payload"]["hello"], "from-a");
 
     // 7. Verify update persisted via GET
-    let resp = arduino_request(
-        port,
-        "GET",
-        &path_a,
-        Some((&uuid_a, &token_a)),
-        None,
-    );
+    let resp = arduino_request(port, "GET", &path_a, Some((&uuid_a, &token_a)), None);
     assert_eq!(resp.status, 200);
     let json = parse_json(&resp.body);
     assert_eq!(json["firmware"], "2.1");
 
     // 8. Unregister A
-    let resp = arduino_request(
-        port,
-        "DELETE",
-        &path_a,
-        Some((&uuid_a, &token_a)),
-        None,
-    );
+    let resp = arduino_request(port, "DELETE", &path_a, Some((&uuid_a, &token_a)), None);
     assert_eq!(resp.status, 200, "unregister should succeed");
 
     // 9. Verify A is gone
-    let resp = arduino_request(
-        port,
-        "GET",
-        &path_a,
-        Some((&uuid_a, &token_a)),
-        None,
-    );
+    let resp = arduino_request(port, "GET", &path_a, Some((&uuid_a, &token_a)), None);
     assert!(resp.status == 401 || resp.status == 404);
 }
 
@@ -760,11 +733,7 @@ async fn raw_tcp_sequential_requests() {
     // (Arduino uses Connection: close, so each request is a new connection)
     for i in 0..5 {
         let resp = arduino_request(port, "GET", "/whoami", Some((&uuid, &token)), None);
-        assert_eq!(
-            resp.status, 200,
-            "sequential request {} should succeed",
-            i
-        );
+        assert_eq!(resp.status, 200, "sequential request {} should succeed", i);
         let json = parse_json(&resp.body);
         assert_eq!(json["uuid"], uuid.as_str());
     }
@@ -773,13 +742,7 @@ async fn raw_tcp_sequential_requests() {
     for i in 0..3 {
         let path = format!("/devices/{}", uuid);
         let body = format!(r#"{{"counter":{}}}"#, i);
-        let resp = arduino_request(
-            port,
-            "PUT",
-            &path,
-            Some((&uuid, &token)),
-            Some(&body),
-        );
+        let resp = arduino_request(port, "PUT", &path, Some((&uuid, &token)), Some(&body));
         assert_eq!(resp.status, 200, "sequential update {} should succeed", i);
         let json = parse_json(&resp.body);
         assert_eq!(json["counter"], i);
@@ -1179,13 +1142,7 @@ async fn raw_tcp_property_roundtrip() {
     ];
 
     for update in &updates {
-        let resp = arduino_request(
-            port,
-            "PUT",
-            &path,
-            Some((&uuid, &token)),
-            Some(update),
-        );
+        let resp = arduino_request(port, "PUT", &path, Some((&uuid, &token)), Some(update));
         assert_eq!(resp.status, 200, "update with {} should succeed", update);
     }
 
