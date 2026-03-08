@@ -8,7 +8,7 @@
   import WebhookEditor from '$lib/components/playground/WebhookEditor.svelte';
   import IconPicker from '$lib/components/playground/IconPicker.svelte';
   import StatusDot from '$lib/components/ui/StatusDot.svelte';
-  import { api } from '$lib/api/client';
+  import { api, syncApiBaseUrl } from '$lib/api/client';
   import { uuid as authUuid, token as authToken } from '$lib/stores/auth';
   import Badge from '$lib/components/ui/Badge.svelte';
   import { vaultDevices } from '$lib/stores/vault';
@@ -35,6 +35,7 @@
     let u = '', t = '';
     authUuid.subscribe(v => u = v)();
     authToken.subscribe(v => t = v)();
+    syncApiBaseUrl();
     api.setCredentials(u, t);
     try {
       device = await api.getDevice(deviceUuid);

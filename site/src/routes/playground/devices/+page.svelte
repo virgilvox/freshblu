@@ -4,7 +4,8 @@
   import Badge from '$lib/components/ui/Badge.svelte';
   import Toast from '$lib/components/ui/Toast.svelte';
   import DeviceCard from '$lib/components/playground/DeviceCard.svelte';
-  import { FreshBluClient, api } from '$lib/api/client';
+  import { FreshBluClient, api, syncApiBaseUrl } from '$lib/api/client';
+  import { PUBLIC_API_URL } from '$env/static/public';
   import { uuid, token } from '$lib/stores/auth';
   import { devices } from '$lib/stores/devices';
   import { vaultDevices, addToVault, removeFromVault, setActiveDevice } from '$lib/stores/vault';
@@ -34,6 +35,7 @@
     uuid.subscribe(v => u = v)();
     token.subscribe(v => t = v)();
     if (u && t) {
+      syncApiBaseUrl();
       api.setCredentials(u, t);
       try {
         const me = await api.whoami();
@@ -47,7 +49,7 @@
   });
 
   async function registerAndVault() {
-    const serverUrl = localStorage.getItem('freshblu_server_url') || 'http://localhost:3000';
+    const serverUrl = localStorage.getItem('freshblu_server_url') || PUBLIC_API_URL || 'http://localhost:3000';
     const client = new FreshBluClient(serverUrl);
     const res = await client.register();
     const newDevice: Device = {
@@ -60,6 +62,7 @@
     setActiveDevice(res.uuid);
     uuid.set(res.uuid);
     token.set(res.token);
+    syncApiBaseUrl();
     api.setCredentials(res.uuid, res.token);
     toast.show('Device registered and added to vault', 'success');
   }

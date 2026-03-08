@@ -17,6 +17,10 @@ class FreshBluClient {
     this.baseUrl = baseUrl || PUBLIC_API_URL || 'http://localhost:3000';
   }
 
+  setBaseUrl(url: string) {
+    this.baseUrl = url;
+  }
+
   setCredentials(uuid: string, token: string) {
     this.uuid = uuid;
     this.token = token;
@@ -125,3 +129,11 @@ class FreshBluClient {
 
 export const api = new FreshBluClient();
 export { FreshBluClient };
+
+/** Sync the singleton api client with the user's localStorage serverUrl */
+export function syncApiBaseUrl() {
+  if (typeof localStorage !== 'undefined') {
+    const url = localStorage.getItem('freshblu_server_url');
+    if (url) api.setBaseUrl(url);
+  }
+}

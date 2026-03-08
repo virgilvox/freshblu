@@ -46,7 +46,10 @@
   let selected: Endpoint | null = $state(null);
   let paramValues: Record<string, string> = $state({});
   let bodyText = $state('');
-  let serverUrl = $state('http://localhost:3000');
+  import { PUBLIC_API_URL } from '$env/static/public';
+
+  const defaultUrl = PUBLIC_API_URL || 'http://localhost:3000';
+  let serverUrl = $state(defaultUrl);
   let executing = $state(false);
   let responseStatus = $state<number | null>(null);
   let responseBody = $state('');
