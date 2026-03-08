@@ -62,10 +62,12 @@ jobs:
           username: root
           key: ${{ secrets.DROPLET_SSH_KEY }}
           envs: GHCR_TOKEN
+          script_stop: true
           script: |
             echo "$GHCR_TOKEN" | docker login ghcr.io -u github-actions --password-stdin
             cd /opt/freshblu
-            git pull origin main
+            git fetch origin main
+            git reset --hard origin/main
             cd deploy/digitalocean
             docker compose pull gateway router
             docker compose up -d
