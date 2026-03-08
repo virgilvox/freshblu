@@ -18,16 +18,50 @@
   function handleKeydown(e: KeyboardEvent) {
     if (e.key === 'Escape') handleClose();
   }
+
+  function trapFocus(node: HTMLElement) {
+    const focusable = () =>
+      node.querySelectorAll<HTMLElement>(
+        'button, [href], input, select, textarea, [tabindex]:not([tabindex="-1"])'
+      );
+
+    function handleTrap(e: KeyboardEvent) {
+      if (e.key !== 'Tab') return;
+      const els = focusable();
+      if (els.length === 0) return;
+      const first = els[0];
+      const last = els[els.length - 1];
+      if (e.shiftKey && document.activeElement === first) {
+        e.preventDefault();
+        last.focus();
+      } else if (!e.shiftKey && document.activeElement === last) {
+        e.preventDefault();
+        first.focus();
+      }
+    }
+
+    node.addEventListener('keydown', handleTrap);
+    // Auto-focus first focusable element
+    requestAnimationFrame(() => {
+      const els = focusable();
+      if (els.length > 0) els[0].focus();
+    });
+
+    return {
+      destroy() {
+        node.removeEventListener('keydown', handleTrap);
+      }
+    };
+  }
 </script>
 
 {#if open}
-  <!-- svelte-ignore a11y_no_noninteractive_element_interactions -->
-  <div class="modal-overlay" role="dialog" aria-modal="true" onkeydown={handleKeydown}>
+  <div class="modal-overlay" onkeydown={handleKeydown}>
     <button class="modal-backdrop" onclick={handleClose} tabindex="-1" aria-label="Close"></button>
-    <div class="modal-panel">
+    <div class="modal-panel" role="dialog" aria-modal="true" aria-labelledby="modal-title" use:trapFocus>
       {#if title}
         <div class="modal-header">
-          <span class="modal-title">{title}</span>
+          <span class="modal-title" id="modal-title">{title}</span>
           <button class="modal-close" onclick={handleClose} aria-label="Close">
             <i class="fa-solid fa-xmark"></i>
           </button>
@@ -60,7 +94,7 @@
     position: relative;
     background: var(--void-high);
     border: 1px solid var(--border-strong);
-    min-width: 400px;
+    min-width: min(400px, 90vw);
     max-width: 90vw;
     max-height: 90vh;
     overflow-y: auto;

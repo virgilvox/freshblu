@@ -47,7 +47,7 @@
     z-index: 100;
   }
   .nav-inner {
-    max-width: 1200px;
+    max-width: 1400px;
     margin: 0 auto;
     padding: 0 40px;
     height: 56px;

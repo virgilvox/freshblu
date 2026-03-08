@@ -10,7 +10,7 @@ export interface EventItem {
 
 let nextId = 0;
 
-function createEventStore() {
+export function createEventStore() {
   const { subscribe, update } = writable<EventItem[]>([]);
 
   return {

@@ -20,7 +20,7 @@
 {#if toasts.length > 0}
   <div class="toast-container">
     {#each toasts as toast (toast.id)}
-      <div class="toast toast-{toast.variant}">
+      <div class="toast toast-{toast.variant}" role="alert" aria-live="polite">
         <span>{toast.message}</span>
         <button class="toast-close" onclick={() => toasts = toasts.filter(t => t.id !== toast.id)}>
           <i class="fa-solid fa-xmark"></i>
@@ -50,6 +50,7 @@
     align-items: center;
     gap: 12px;
     min-width: 280px;
+    max-width: min(400px, calc(100vw - 32px));
     animation: slide-in var(--dur-med) var(--ease-snap);
   }
   .toast-info    { border-color: var(--pulse);   color: var(--pulse); }

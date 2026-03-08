@@ -1,9 +1,12 @@
 <script lang="ts">
+  import { onDestroy } from 'svelte';
   import Badge from '../ui/Badge.svelte';
   import { events, type EventItem } from '$lib/stores/events';
 
   let items: EventItem[] = $state([]);
-  events.subscribe(v => items = v);
+  const unsubEvents = events.subscribe(v => items = v);
+
+  onDestroy(unsubEvents);
 
   function formatTime(d: Date): string {
     return d.toLocaleTimeString('en-US', { hour12: false, fractionalSecondDigits: 3 });

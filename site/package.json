@@ -37,6 +37,7 @@
 		"@fontsource/chakra-petch": "^5.2.7",
 		"@fontsource/fira-code": "^5.2.7",
 		"@sveltejs/adapter-static": "^3.0.10",
-		"highlight.js": "^11.11.1"
+		"highlight.js": "^11.11.1",
+		"idb": "^8.0.3"
 	}
 }

@@ -84,12 +84,22 @@
     border-color: var(--signal);
   }
   .btn-signal:hover {
-    background: rgba(0,207,255,0.15);
+    background: var(--signal-dim);
     transform: translateY(-2px);
-    box-shadow: 3px 3px 0 rgba(0,207,255,0.4);
+    box-shadow: 3px 3px 0 var(--border-signal);
   }
 
   .btn-sm { font-size: var(--text-xs); padding: 6px 12px; }
   .btn-md { font-size: var(--text-sm); padding: 10px 20px; }
   .btn-lg { font-size: var(--text-base); padding: 14px 28px; }
+
+  .btn:disabled, .btn[disabled] {
+    opacity: 0.4;
+    cursor: not-allowed;
+    pointer-events: none;
+  }
+  .btn:focus-visible {
+    outline: 2px solid var(--pulse);
+    outline-offset: 2px;
+  }
 </style>

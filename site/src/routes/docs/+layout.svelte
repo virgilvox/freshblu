@@ -32,6 +32,8 @@
         { href: '/docs/reference/mqtt-protocol', label: 'MQTT Protocol' },
         { href: '/docs/reference/permissions', label: 'Permissions' },
         { href: '/docs/reference/arduino-library', label: 'Arduino Library' },
+        { href: '/docs/reference/cli', label: 'CLI Reference' },
+        { href: '/docs/reference/javascript-client', label: 'JavaScript Client' },
         { href: '/docs/reference/error-codes', label: 'Error Codes' },
         { href: '/docs/reference/configuration', label: 'Configuration' },
       ]
