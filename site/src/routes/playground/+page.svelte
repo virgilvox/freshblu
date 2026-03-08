@@ -3,13 +3,14 @@
   import Button from '$lib/components/ui/Button.svelte';
   import Badge from '$lib/components/ui/Badge.svelte';
   import Toast from '$lib/components/ui/Toast.svelte';
-  import { FreshBluClient } from '$lib/api/client';
+  import { FreshBluClient, api, syncApiBaseUrl } from '$lib/api/client';
+  import { PUBLIC_API_URL } from '$env/static/public';
   import { addToVault, setActiveDevice, vaultDevices } from '$lib/stores/vault';
   import { uuid as authUuid, token as authToken } from '$lib/stores/auth';
-  import { api } from '$lib/api/client';
   import type { VaultDevice } from '$lib/stores/vault';
 
-  let serverUrl = $state('http://localhost:3000');
+  const defaultUrl = PUBLIC_API_URL || 'http://localhost:3000';
+  let serverUrl = $state(defaultUrl);
   let pingStatus = $state('');
   let pinging = $state(false);
   let registering = $state(false);
@@ -57,6 +58,7 @@
       setActiveDevice(res.uuid);
       authUuid.set(res.uuid);
       authToken.set(res.token);
+      syncApiBaseUrl();
       api.setCredentials(res.uuid, res.token);
       toast.show('Device registered and added to vault', 'success');
     } catch (e) {

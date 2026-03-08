@@ -4,8 +4,10 @@
   import Button from '$lib/components/ui/Button.svelte';
   import Badge from '$lib/components/ui/Badge.svelte';
   import { FreshBluClient } from '$lib/api/client';
+  import { PUBLIC_API_URL } from '$env/static/public';
 
-  let serverUrl = $state('http://localhost:3000');
+  const defaultUrl = PUBLIC_API_URL || 'http://localhost:3000';
+  let serverUrl = $state(defaultUrl);
   let pingStatus = $state('');
   let pinging = $state(false);
 

@@ -2,7 +2,7 @@
   import { onDestroy } from 'svelte';
   import { vaultDevices, activeUuid, removeFromVault, clearVault, setActiveDevice } from '$lib/stores/vault';
   import { uuid, token } from '$lib/stores/auth';
-  import { api } from '$lib/api/client';
+  import { api, syncApiBaseUrl } from '$lib/api/client';
   import type { VaultDevice } from '$lib/stores/vault';
 
   let devices: VaultDevice[] = $state([]);
@@ -21,6 +21,7 @@
     setActiveDevice(device.uuid);
     uuid.set(device.uuid);
     token.set(device.token);
+    syncApiBaseUrl();
     api.setCredentials(device.uuid, device.token);
     open = false;
   }

@@ -12,7 +12,7 @@ static_sites:
     source_dir: site
     build_command: npm install && npm run build
     output_dir: build
-    error_document: 200.html
+    catchall_document: 200.html
     envs:
       - key: PUBLIC_API_URL
         value: "https://api.freshblu.org"
