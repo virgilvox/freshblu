@@ -5,7 +5,8 @@
   import { FreshBluClient } from '$lib/api/client';
   import { FreshBluWs } from '$lib/api/ws';
   import { createEventStore, type EventItem } from '$lib/stores/events';
-  import { addToVault } from '$lib/stores/vault';
+  import { addToVault, vaultDevices } from '$lib/stores/vault';
+  import type { VaultDevice } from '$lib/stores/vault';
   import type { SubscriptionType } from '$lib/api/types';
 
   interface Props {
@@ -44,6 +45,17 @@
   const eventStore = createEventStore();
   let eventItems: EventItem[] = $state([]);
   const unsubEvents = eventStore.subscribe((v) => (eventItems = v));
+
+  let vault: VaultDevice[] = $state([]);
+  const unsubVault = vaultDevices.subscribe(v => vault = v);
+
+  function loadFromVault(deviceUuid: string) {
+    const vd = vault.find(d => d.uuid === deviceUuid);
+    if (vd) {
+      panelUuid = vd.uuid;
+      panelToken = vd.token;
+    }
+  }
 
   let client: FreshBluClient | null = null;
   let ws: FreshBluWs | null = null;
@@ -180,6 +192,7 @@
   onDestroy(() => {
     ws?.close();
     unsubEvents();
+    unsubVault();
   });
 </script>
 
@@ -194,6 +207,16 @@
 
   <div class="panel-section">
     <div class="section-label">Credentials</div>
+    {#if vault.length > 0}
+      <div class="field-row">
+        <select class="field-sm select" aria-label="Load from vault" onchange={(e) => { const v = (e.target as HTMLSelectElement).value; if (v) loadFromVault(v); }}>
+          <option value="">Load from vault...</option>
+          {#each vault as vd (vd.uuid)}
+            <option value={vd.uuid}>{vd.uuid.substring(0, 8)}...{vd.label ? ` (${vd.label})` : ''}</option>
+          {/each}
+        </select>
+      </div>
+    {/if}
     <div class="field-row">
       <input class="field-sm" placeholder="UUID" bind:value={panelUuid} aria-label="Device UUID" />
       <input class="field-sm" type="password" placeholder="Token" bind:value={panelToken} aria-label="Device Token" />
