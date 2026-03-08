@@ -33,14 +33,14 @@ curl -X POST http://localhost:3000/devices/SUBSCRIBER_UUID/subscriptions \\
   <h2>Subscription Types</h2>
   <p>There are 8 subscription types, each mapping to a specific event:</p>
   <ul>
-    <li><code>broadcast-sent</code> &mdash; broadcasts sent FROM the emitter</li>
-    <li><code>broadcast-received</code> &mdash; broadcasts received BY the emitter</li>
-    <li><code>message-sent</code> &mdash; direct messages sent FROM the emitter</li>
-    <li><code>message-received</code> &mdash; direct messages received BY the emitter</li>
-    <li><code>configure-sent</code> &mdash; config changes made BY the emitter</li>
-    <li><code>configure-received</code> &mdash; config changes made TO the emitter</li>
-    <li><code>unregister-sent</code> &mdash; the emitter unregisters itself</li>
-    <li><code>unregister-received</code> &mdash; the emitter is unregistered by another device</li>
+    <li><code>broadcast-sent</code> - broadcasts sent FROM the emitter</li>
+    <li><code>broadcast-received</code> - broadcasts received BY the emitter</li>
+    <li><code>message-sent</code> - direct messages sent FROM the emitter</li>
+    <li><code>message-received</code> - direct messages received BY the emitter</li>
+    <li><code>configure-sent</code> - config changes made BY the emitter</li>
+    <li><code>configure-received</code> - config changes made TO the emitter</li>
+    <li><code>unregister-sent</code> - the emitter unregisters itself</li>
+    <li><code>unregister-received</code> - the emitter is unregistered by another device</li>
   </ul>
 
   <h2>Permission Requirements</h2>

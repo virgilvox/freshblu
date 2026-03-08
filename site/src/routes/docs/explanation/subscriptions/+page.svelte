@@ -62,10 +62,10 @@
 }`} />
   <p>For each event type, the router calls a specialized method:</p>
   <ul>
-    <li><code>route_direct</code> &mdash; looks up the target's pod in Redis, sends a <code>DeliveryEnvelope</code>.</li>
-    <li><code>route_broadcast</code> &mdash; queries <code>broadcast.sent</code> subscribers, looks up each subscriber's pod, delivers envelopes.</li>
-    <li><code>route_config</code> &mdash; delivers to the device itself, then fans out to <code>configure.sent</code> subscribers.</li>
-    <li><code>route_unregister</code> &mdash; fans out to <code>unregister.sent</code> subscribers.</li>
+    <li><code>route_direct</code> - looks up the target's pod in Redis, sends a <code>DeliveryEnvelope</code>.</li>
+    <li><code>route_broadcast</code> - queries <code>broadcast.sent</code> subscribers, looks up each subscriber's pod, delivers envelopes.</li>
+    <li><code>route_config</code> - delivers to the device itself, then fans out to <code>configure.sent</code> subscribers.</li>
+    <li><code>route_unregister</code> - fans out to <code>unregister.sent</code> subscribers.</li>
   </ul>
   <p>If a subscriber is not online (no Redis presence entry), the delivery is dropped. FreshBlu does not queue messages for offline devices.</p>
 

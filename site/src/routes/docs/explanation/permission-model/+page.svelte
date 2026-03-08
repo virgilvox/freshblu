@@ -18,34 +18,34 @@
   <h3>discover</h3>
   <p>Controls visibility. Can another device see that this device exists?</p>
   <ul>
-    <li><code>view</code> &mdash; checked on <code>GET /devices/:uuid</code> and <code>POST /devices/search</code>. If the caller is not in this list, the device appears to not exist (returns 404, not 403).</li>
-    <li><code>as</code> &mdash; checked when a caller uses the <code>x-meshblu-as</code> header to discover on behalf of this device.</li>
+    <li><code>view</code> - checked on <code>GET /devices/:uuid</code> and <code>POST /devices/search</code>. If the caller is not in this list, the device appears to not exist (returns 404, not 403).</li>
+    <li><code>as</code> - checked when a caller uses the <code>x-meshblu-as</code> header to discover on behalf of this device.</li>
   </ul>
 
   <h3>configure</h3>
   <p>Controls modification and config event distribution.</p>
   <ul>
-    <li><code>update</code> &mdash; checked on <code>PUT /devices/:uuid</code> and <code>DELETE /devices/:uuid</code>. Guards who can change the device document.</li>
-    <li><code>sent</code> &mdash; controls who can subscribe to config change events that this device emits. When the device is updated, subscribers in this list receive the new config.</li>
-    <li><code>received</code> &mdash; controls who can subscribe to config change events directed at this device.</li>
-    <li><code>as</code> &mdash; checked when a caller uses <code>x-meshblu-as</code> to configure on behalf of this device.</li>
+    <li><code>update</code> - checked on <code>PUT /devices/:uuid</code> and <code>DELETE /devices/:uuid</code>. Guards who can change the device document.</li>
+    <li><code>sent</code> - controls who can subscribe to config change events that this device emits. When the device is updated, subscribers in this list receive the new config.</li>
+    <li><code>received</code> - controls who can subscribe to config change events directed at this device.</li>
+    <li><code>as</code> - checked when a caller uses <code>x-meshblu-as</code> to configure on behalf of this device.</li>
   </ul>
 
   <h3>message</h3>
   <p>Controls direct messaging.</p>
   <ul>
-    <li><code>from</code> &mdash; checked on the target device when a message is sent to it. This is the gatekeeper for inbound messages. If the sender is not in this list, the message is silently dropped.</li>
-    <li><code>sent</code> &mdash; controls who can subscribe to messages sent FROM this device. Allows third parties to monitor outbound traffic.</li>
-    <li><code>received</code> &mdash; controls who can subscribe to messages received BY this device. Allows third parties to monitor inbound traffic.</li>
-    <li><code>as</code> &mdash; checked when a caller uses <code>x-meshblu-as</code> to send messages on behalf of this device.</li>
+    <li><code>from</code> - checked on the target device when a message is sent to it. This is the gatekeeper for inbound messages. If the sender is not in this list, the message is silently dropped.</li>
+    <li><code>sent</code> - controls who can subscribe to messages sent FROM this device. Allows third parties to monitor outbound traffic.</li>
+    <li><code>received</code> - controls who can subscribe to messages received BY this device. Allows third parties to monitor inbound traffic.</li>
+    <li><code>as</code> - checked when a caller uses <code>x-meshblu-as</code> to send messages on behalf of this device.</li>
   </ul>
 
   <h3>broadcast</h3>
   <p>Controls broadcast event distribution.</p>
   <ul>
-    <li><code>sent</code> &mdash; controls who can subscribe to broadcasts from this device. This is checked when creating a <code>broadcast-sent</code> subscription.</li>
-    <li><code>received</code> &mdash; controls who can subscribe to broadcasts received by this device.</li>
-    <li><code>as</code> &mdash; checked when a caller uses <code>x-meshblu-as</code> to broadcast on behalf of this device.</li>
+    <li><code>sent</code> - controls who can subscribe to broadcasts from this device. This is checked when creating a <code>broadcast-sent</code> subscription.</li>
+    <li><code>received</code> - controls who can subscribe to broadcasts received by this device.</li>
+    <li><code>as</code> - checked when a caller uses <code>x-meshblu-as</code> to broadcast on behalf of this device.</li>
   </ul>
 
   <h2>Self-Access</h2>
@@ -69,14 +69,14 @@ pub fn can_discover_view(&self) -> bool {
 
   <h2>When Each Check Applies</h2>
   <ul>
-    <li><code>discover.view</code> &mdash; <code>GET /devices/:uuid</code>, <code>POST /devices/search</code> (filters results), <code>GET /whoami</code> (implicitly passes, always self).</li>
-    <li><code>discover.as</code> &mdash; <code>GET /devices/:uuid</code> with <code>x-meshblu-as</code> header.</li>
-    <li><code>configure.update</code> &mdash; <code>PUT /devices/:uuid</code>, <code>DELETE /devices/:uuid</code>, creating subscriptions for another device.</li>
-    <li><code>configure.as</code> &mdash; <code>PUT /devices/:uuid</code> or <code>DELETE /devices/:uuid</code> with <code>x-meshblu-as</code> header.</li>
-    <li><code>message.from</code> &mdash; <code>POST /messages</code> (checked on each target device), WebSocket message action.</li>
-    <li><code>message.as</code> &mdash; <code>POST /messages</code> with <code>x-meshblu-as</code> header.</li>
-    <li><code>broadcast.sent</code> &mdash; creating a <code>broadcast-sent</code> subscription.</li>
-    <li><code>broadcast.as</code> &mdash; <code>POST /messages</code> with <code>devices: ["*"]</code> and <code>x-meshblu-as</code> header.</li>
+    <li><code>discover.view</code> - <code>GET /devices/:uuid</code>, <code>POST /devices/search</code> (filters results), <code>GET /whoami</code> (implicitly passes, always self).</li>
+    <li><code>discover.as</code> - <code>GET /devices/:uuid</code> with <code>x-meshblu-as</code> header.</li>
+    <li><code>configure.update</code> - <code>PUT /devices/:uuid</code>, <code>DELETE /devices/:uuid</code>, creating subscriptions for another device.</li>
+    <li><code>configure.as</code> - <code>PUT /devices/:uuid</code> or <code>DELETE /devices/:uuid</code> with <code>x-meshblu-as</code> header.</li>
+    <li><code>message.from</code> - <code>POST /messages</code> (checked on each target device), WebSocket message action.</li>
+    <li><code>message.as</code> - <code>POST /messages</code> with <code>x-meshblu-as</code> header.</li>
+    <li><code>broadcast.sent</code> - creating a <code>broadcast-sent</code> subscription.</li>
+    <li><code>broadcast.as</code> - <code>POST /messages</code> with <code>devices: ["*"]</code> and <code>x-meshblu-as</code> header.</li>
   </ul>
 
   <h2>Silent Rejection</h2>

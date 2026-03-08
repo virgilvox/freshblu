@@ -12,6 +12,15 @@
   let error = $state('');
   let loading = $state(false);
 
+  let registered: { uuid: string; token: string } | null = $state(null);
+  let copiedField = $state('');
+
+  async function copyText(text: string, field: string) {
+    await navigator.clipboard.writeText(text);
+    copiedField = field;
+    setTimeout(() => copiedField = '', 2000);
+  }
+
   async function handleRegister() {
     error = '';
     loading = true;
@@ -19,7 +28,7 @@
       const res = await api.register();
       api.setCredentials(res.uuid, res.token);
       setCredentials(res.uuid, res.token);
-      goto('/playground/devices');
+      registered = { uuid: res.uuid, token: res.token };
     } catch (e) {
       error = (e as Error).message;
     } finally {
@@ -51,36 +60,68 @@
   <h1 class="page-title">Connect to FreshBlu</h1>
   <p class="page-desc">Register a new device or connect with existing credentials.</p>
 
-  <div class="mode-switch">
-    <button class="mode-btn" class:active={mode === 'register'} onclick={() => mode = 'register'}>
-      Register
-    </button>
-    <button class="mode-btn" class:active={mode === 'connect'} onclick={() => mode = 'connect'}>
-      Connect
-    </button>
-  </div>
-
-  {#if mode === 'register'}
-    <Card title="Register New Device">
-      <p class="card-text">Create a new device on the mesh. You will receive a UUID and token.</p>
+  {#if registered}
+    <Card title="Device Registered">
+      <p class="card-text">Save these credentials. The token is shown only once.</p>
+      <div class="cred-grid">
+        <div class="cred-row">
+          <span class="cred-label">UUID</span>
+          <code class="cred-value">{registered.uuid}</code>
+          <button class="cred-copy" onclick={() => copyText(registered!.uuid, 'uuid')}>
+            <i class="fa-solid {copiedField === 'uuid' ? 'fa-check' : 'fa-copy'}"></i>
+          </button>
+        </div>
+        <div class="cred-row">
+          <span class="cred-label">Token</span>
+          <code class="cred-value">{registered.token}</code>
+          <button class="cred-copy" onclick={() => copyText(registered!.token, 'token')}>
+            <i class="fa-solid {copiedField === 'token' ? 'fa-check' : 'fa-copy'}"></i>
+          </button>
+        </div>
+        <div class="cred-row">
+          <span class="cred-label">JSON</span>
+          <code class="cred-value">{JSON.stringify({ uuid: registered.uuid, token: registered.token })}</code>
+          <button class="cred-copy" onclick={() => copyText(JSON.stringify({ uuid: registered!.uuid, token: registered!.token }, null, 2), 'json')}>
+            <i class="fa-solid {copiedField === 'json' ? 'fa-check' : 'fa-copy'}"></i>
+          </button>
+        </div>
+      </div>
       <div class="action-row">
-        <Button onclick={handleRegister} disabled={loading}>
-          {loading ? 'Registering...' : 'Register Device'}
-        </Button>
+        <Button onclick={() => goto('/playground/devices')}>Continue to Dashboard</Button>
       </div>
     </Card>
   {:else}
-    <Card title="Connect Existing Device">
-      <div class="connect-form">
-        <Input label="UUID" placeholder="xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx" bind:value={connectUuid} />
-        <Input label="Token" type="password" placeholder="Device token" bind:value={connectToken} />
+    <div class="mode-switch">
+      <button class="mode-btn" class:active={mode === 'register'} onclick={() => mode = 'register'}>
+        Register
+      </button>
+      <button class="mode-btn" class:active={mode === 'connect'} onclick={() => mode = 'connect'}>
+        Connect
+      </button>
+    </div>
+
+    {#if mode === 'register'}
+      <Card title="Register New Device">
+        <p class="card-text">Create a new device on the mesh. You will receive a UUID and token.</p>
         <div class="action-row">
-          <Button onclick={handleConnect} disabled={loading || !connectUuid || !connectToken}>
-            {loading ? 'Connecting...' : 'Connect'}
+          <Button onclick={handleRegister} disabled={loading}>
+            {loading ? 'Registering...' : 'Register Device'}
           </Button>
         </div>
-      </div>
-    </Card>
+      </Card>
+    {:else}
+      <Card title="Connect Existing Device">
+        <div class="connect-form">
+          <Input label="UUID" placeholder="xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx" bind:value={connectUuid} />
+          <Input label="Token" type="password" placeholder="Device token" bind:value={connectToken} />
+          <div class="action-row">
+            <Button onclick={handleConnect} disabled={loading || !connectUuid || !connectToken}>
+              {loading ? 'Connecting...' : 'Connect'}
+            </Button>
+          </div>
+        </div>
+      </Card>
+    {/if}
   {/if}
 
   {#if error}
@@ -154,5 +195,50 @@
     display: flex;
     align-items: center;
     gap: 8px;
+  }
+  .cred-grid {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    margin-bottom: 16px;
+  }
+  .cred-row {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 8px 12px;
+    background: var(--void);
+    border: 1px solid var(--border);
+  }
+  .cred-label {
+    font-family: var(--font-ui);
+    font-size: var(--text-xs);
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: var(--ink-muted);
+    min-width: 48px;
+  }
+  .cred-value {
+    font-family: var(--font-body);
+    font-size: var(--text-xs);
+    color: var(--pulse);
+    flex: 1;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+  .cred-copy {
+    background: none;
+    border: 1px solid var(--border);
+    color: var(--ink-muted);
+    padding: 4px 8px;
+    cursor: pointer;
+    font-size: var(--text-xs);
+    transition: color var(--dur-fast), border-color var(--dur-fast);
+    flex-shrink: 0;
+  }
+  .cred-copy:hover {
+    color: var(--pulse);
+    border-color: var(--pulse);
   }
 </style>

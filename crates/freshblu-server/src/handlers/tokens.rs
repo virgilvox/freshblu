@@ -18,7 +18,7 @@ pub async fn generate_token(
     State(state): State<AppState>,
     AuthenticatedDevice(actor, _): AuthenticatedDevice,
     Path(uuid): Path<Uuid>,
-    Json(opts): Json<Option<GenerateTokenOptions>>,
+    opts: Option<Json<GenerateTokenOptions>>,
 ) -> ApiResult<serde_json::Value> {
     let device = state
         .store
@@ -35,7 +35,7 @@ pub async fn generate_token(
 
     let (record, plaintext) = state
         .store
-        .generate_token(&uuid, opts.unwrap_or_default())
+        .generate_token(&uuid, opts.map(|j| j.0).unwrap_or_default())
         .await?;
 
     Ok(Json(serde_json::json!({

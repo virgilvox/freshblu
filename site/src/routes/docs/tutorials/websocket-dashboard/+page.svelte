@@ -60,30 +60,30 @@ ws.onclose = () => {
 };`} />
 
   <h2>3. Send the Identity Message</h2>
-  <p>On open, send an <code>identity</code> action with your device credentials. The server validates them before accepting further frames.</p>
+  <p>On open, send an <code>identity</code> event with your device credentials. The server validates them before accepting further frames.</p>
   <CodeBlock lang="javascript" code={`ws.onopen = () => {
   statusEl.textContent = 'authenticating...';
   ws.send(JSON.stringify({
-    action: 'identity',
+    event: 'identity',
     uuid: UUID,
     token: TOKEN
   }));
 };`} />
 
   <h2>4. Handle the Ready Event</h2>
-  <p>The server sends a <code>ready</code> action after successful authentication. Until you receive it, the connection is not usable.</p>
+  <p>The server sends a <code>ready</code> event after successful authentication. Until you receive it, the connection is not usable.</p>
   <CodeBlock lang="javascript" code={`let authenticated = false;
 
 ws.onmessage = (event) => {
   const msg = JSON.parse(event.data);
 
-  if (msg.action === 'ready') {
+  if (msg.event === 'ready') {
     authenticated = true;
     statusEl.textContent = 'ready';
     return;
   }
 
-  // handle other actions below
+  // handle other events below
 };`} />
 
   <h2>5. Display Incoming Messages</h2>
@@ -93,13 +93,13 @@ ws.onmessage = (event) => {
 ws.onmessage = (event) => {
   const msg = JSON.parse(event.data);
 
-  if (msg.action === 'ready') {
+  if (msg.event === 'ready') {
     authenticated = true;
     statusEl.textContent = 'ready';
     return;
   }
 
-  if (msg.action === 'message') {
+  if (msg.event === 'message') {
     const li = document.createElement('li');
     const time = new Date().toLocaleTimeString();
     li.textContent = time + ' [' + msg.fromUuid + '] '
@@ -109,7 +109,7 @@ ws.onmessage = (event) => {
 };`} />
 
   <h2>6. Add the Send Button</h2>
-  <p>Read the target UUID and payload from the inputs. Send a message action through the WebSocket.</p>
+  <p>Read the target UUID and payload from the inputs. Send a message event through the WebSocket.</p>
   <CodeBlock lang="javascript" code={`const targetInput  = document.getElementById('target');
 const payloadInput = document.getElementById('payload');
 const sendBtn      = document.getElementById('send');
@@ -128,7 +128,7 @@ sendBtn.addEventListener('click', () => {
   }
 
   ws.send(JSON.stringify({
-    action: 'message',
+    event: 'message',
     devices: [target],
     payload: payload
   }));

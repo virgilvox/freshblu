@@ -11,12 +11,12 @@
   <h2>Crate Structure</h2>
   <p>FreshBlu is a Cargo workspace with six crates. Each has a single responsibility.</p>
   <ul>
-    <li><strong>freshblu-core</strong> &mdash; Domain types. Devices, permissions, subscriptions, forwarders, messages, tokens, auth. No I/O. Feature-gated: the <code>auth</code> feature enables bcrypt hashing.</li>
-    <li><strong>freshblu-store</strong> &mdash; The <code>DeviceStore</code> trait and its implementations. SQLite (default), PostgreSQL (<code>postgres</code> feature), and Redis-backed <code>CachedStore</code> (<code>cache</code> feature). All storage is async.</li>
-    <li><strong>freshblu-proto</strong> &mdash; Wire types shared between the gateway and router. <code>NatsEvent</code>, <code>DeliveryEnvelope</code>, and NATS subject helpers.</li>
-    <li><strong>freshblu-server</strong> &mdash; The HTTP/WS/MQTT gateway binary. Built on axum and rumqttd. Contains the <code>MessageBus</code> trait, request handlers, webhook executor, presence tracker, rate limiter, and Prometheus metrics.</li>
-    <li><strong>freshblu-router</strong> &mdash; The NATS consumer binary. Reads device events from NATS, resolves subscriptions via the store, and fans out <code>DeliveryEnvelope</code>s to the correct gateway pod.</li>
-    <li><strong>freshblu-cli</strong> &mdash; Command-line tool compatible with meshblu-util. Built with clap v4.</li>
+    <li><strong>freshblu-core</strong> - Domain types. Devices, permissions, subscriptions, forwarders, messages, tokens, auth. No I/O. Feature-gated: the <code>auth</code> feature enables bcrypt hashing.</li>
+    <li><strong>freshblu-store</strong> - The <code>DeviceStore</code> trait and its implementations. SQLite (default), PostgreSQL (<code>postgres</code> feature), and Redis-backed <code>CachedStore</code> (<code>cache</code> feature). All storage is async.</li>
+    <li><strong>freshblu-proto</strong> - Wire types shared between the gateway and router. <code>NatsEvent</code>, <code>DeliveryEnvelope</code>, and NATS subject helpers.</li>
+    <li><strong>freshblu-server</strong> - The HTTP/WS/MQTT gateway binary. Built on axum and rumqttd. Contains the <code>MessageBus</code> trait, request handlers, webhook executor, presence tracker, rate limiter, and Prometheus metrics.</li>
+    <li><strong>freshblu-router</strong> - The NATS consumer binary. Reads device events from NATS, resolves subscriptions via the store, and fans out <code>DeliveryEnvelope</code>s to the correct gateway pod.</li>
+    <li><strong>freshblu-cli</strong> - Command-line tool compatible with meshblu-util. Built with clap v4.</li>
   </ul>
 
   <h2>AppState</h2>
@@ -84,9 +84,9 @@ pub trait MessageBus: Send + Sync + 'static {
   <h2>Store Layer</h2>
   <p>The <code>DeviceStore</code> trait defines all persistence operations: register, get, update, unregister, search, authenticate, subscriptions, tokens. Three backends:</p>
   <ul>
-    <li><strong>SQLite</strong> &mdash; default, zero-config, uses PRAGMA foreign_keys with CASCADE deletes on subscriptions.</li>
-    <li><strong>PostgreSQL</strong> &mdash; production backend, activated by <code>DATABASE_URL</code>.</li>
-    <li><strong>CachedStore</strong> &mdash; wraps any store with a Redis read-through cache. Activated by <code>REDIS_URL</code>.</li>
+    <li><strong>SQLite</strong> - default, zero-config, uses PRAGMA foreign_keys with CASCADE deletes on subscriptions.</li>
+    <li><strong>PostgreSQL</strong> - production backend, activated by <code>DATABASE_URL</code>.</li>
+    <li><strong>CachedStore</strong> - wraps any store with a Redis read-through cache. Activated by <code>REDIS_URL</code>.</li>
   </ul>
 
   <h2>Feature Flags</h2>
