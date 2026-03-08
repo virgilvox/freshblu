@@ -1,0 +1,19 @@
+name: freshblu-site
+region: nyc
+domains:
+  - domain: freshblu.org
+    type: PRIMARY
+static_sites:
+  - name: web
+    github:
+      repo: virgilvox/freshblu
+      branch: main
+      deploy_on_push: true
+    source_dir: site
+    build_command: npm install && npm run build
+    output_dir: build
+    catchall_document: 200.html
+    envs:
+      - key: PUBLIC_API_URL
+        scope: BUILD_TIME
+        value: "https://api.freshblu.org"

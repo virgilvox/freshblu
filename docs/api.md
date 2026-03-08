@@ -221,10 +221,10 @@ curl http://localhost:3000/devices/target-uuid \
 ```
 
 Permission required depends on the operation:
-- `GET /devices/:uuid` — requires `discover.as` on the as-device
-- `PUT /devices/:uuid` — requires `configure.as` on the as-device
-- `DELETE /devices/:uuid` — requires `configure.as` on the as-device
-- `POST /messages` — requires `message.as` on the as-device
+- `GET /devices/:uuid`  - requires `discover.as` on the as-device
+- `PUT /devices/:uuid`  - requires `configure.as` on the as-device
+- `DELETE /devices/:uuid`  - requires `configure.as` on the as-device
+- `POST /messages`  - requires `message.as` on the as-device
 
 ## Error Responses
 
@@ -236,10 +236,10 @@ All errors return JSON:
 
 | Status | Meaning |
 |---|---|
-| 401 | Unauthorized — missing or invalid credentials |
-| 403 | Forbidden — insufficient permissions |
-| 404 | Not Found — device doesn't exist or no discover permission |
-| 409 | Conflict — resource already exists |
-| 422 | Validation Error — invalid input |
+| 401 | Unauthorized  - missing or invalid credentials |
+| 403 | Forbidden  - insufficient permissions |
+| 404 | Not Found  - device doesn't exist or no discover permission |
+| 409 | Conflict  - resource already exists |
+| 422 | Validation Error  - invalid input |
 | 429 | Rate Limited |
 | 500 | Internal Server Error |
