@@ -14,7 +14,7 @@ class FreshBluClient {
   private token = '';
 
   constructor(baseUrl?: string) {
-    this.baseUrl = baseUrl || PUBLIC_API_URL || 'http://localhost:3000';
+    this.baseUrl = baseUrl || PUBLIC_API_URL || 'https://api.freshblu.org';
   }
 
   setBaseUrl(url: string) {
@@ -144,12 +144,12 @@ export function getServerUrl(): string {
     const stored = localStorage.getItem('freshblu_server_url');
     if (stored) return stored;
   }
-  return PUBLIC_API_URL || 'http://localhost:3000';
+  return PUBLIC_API_URL || 'https://api.freshblu.org';
 }
 
 /** Save server URL to localStorage only if it differs from the build-time default */
 export function saveServerUrl(url: string) {
-  const defaultUrl = PUBLIC_API_URL || 'http://localhost:3000';
+  const defaultUrl = PUBLIC_API_URL || 'https://api.freshblu.org';
   if (url === defaultUrl) {
     localStorage.removeItem('freshblu_server_url');
   } else {

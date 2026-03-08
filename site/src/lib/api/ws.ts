@@ -22,7 +22,7 @@ export class FreshBluWs {
 
   connect(): Promise<void> {
     return new Promise((resolve, reject) => {
-      const url = (this.baseUrl || PUBLIC_API_URL || 'http://localhost:3000')
+      const url = (this.baseUrl || PUBLIC_API_URL || 'https://api.freshblu.org')
         .replace(/^http/, 'ws') + '/ws';
 
       this.ws = new WebSocket(url);
