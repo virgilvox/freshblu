@@ -1,7 +1,7 @@
 <script lang="ts">
   import { onMount, onDestroy } from 'svelte';
   import { vaultDevices } from '$lib/stores/vault';
-  import { PUBLIC_API_URL } from '$env/static/public';
+  import { getServerUrl } from '$lib/api/client';
   import { FreshBluWs } from '$lib/api/ws';
   import type { VaultDevice } from '$lib/stores/vault';
 
@@ -60,7 +60,7 @@
 
   function connectDevice(device: VaultDevice) {
     if (connections.has(device.uuid)) return;
-    const serverUrl = localStorage.getItem('freshblu_server_url') || PUBLIC_API_URL || 'http://localhost:3000';
+    const serverUrl = getServerUrl();
     const ws = new FreshBluWs(device.uuid, device.token, serverUrl);
     ws.on('message', (event) => {
       const fromUuid = (event as Record<string, unknown>).fromUuid as string | undefined;

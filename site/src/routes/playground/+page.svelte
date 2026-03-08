@@ -3,14 +3,12 @@
   import Button from '$lib/components/ui/Button.svelte';
   import Badge from '$lib/components/ui/Badge.svelte';
   import Toast from '$lib/components/ui/Toast.svelte';
-  import { FreshBluClient, api, syncApiBaseUrl } from '$lib/api/client';
-  import { PUBLIC_API_URL } from '$env/static/public';
+  import { FreshBluClient, api, syncApiBaseUrl, getServerUrl, saveServerUrl } from '$lib/api/client';
   import { addToVault, setActiveDevice, vaultDevices } from '$lib/stores/vault';
   import { uuid as authUuid, token as authToken } from '$lib/stores/auth';
   import type { VaultDevice } from '$lib/stores/vault';
 
-  const defaultUrl = PUBLIC_API_URL || 'http://localhost:3000';
-  let serverUrl = $state(defaultUrl);
+  let serverUrl = $state('');
   let pingStatus = $state('');
   let pinging = $state(false);
   let registering = $state(false);
@@ -24,15 +22,14 @@
   const unsubVault = vaultDevices.subscribe(v => vault = v);
 
   onMount(() => {
-    const stored = localStorage.getItem('freshblu_server_url');
-    if (stored) serverUrl = stored;
+    serverUrl = getServerUrl();
     return unsubVault;
   });
 
   async function handlePing() {
     pinging = true;
     pingStatus = '';
-    localStorage.setItem('freshblu_server_url', serverUrl);
+    saveServerUrl(serverUrl);
     try {
       const client = new FreshBluClient(serverUrl);
       const res = await client.status();
@@ -47,7 +44,7 @@
     registering = true;
     lastRegistered = null;
     try {
-      localStorage.setItem('freshblu_server_url', serverUrl);
+      saveServerUrl(serverUrl);
       const client = new FreshBluClient(serverUrl);
       const params: Record<string, unknown> = {};
       if (regType) params.type = regType;

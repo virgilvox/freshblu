@@ -3,23 +3,20 @@
   import DevicePanel from '$lib/components/playground/DevicePanel.svelte';
   import Button from '$lib/components/ui/Button.svelte';
   import Badge from '$lib/components/ui/Badge.svelte';
-  import { FreshBluClient } from '$lib/api/client';
-  import { PUBLIC_API_URL } from '$env/static/public';
+  import { FreshBluClient, getServerUrl, saveServerUrl } from '$lib/api/client';
 
-  const defaultUrl = PUBLIC_API_URL || 'http://localhost:3000';
-  let serverUrl = $state(defaultUrl);
+  let serverUrl = $state('');
   let pingStatus = $state('');
   let pinging = $state(false);
 
   onMount(() => {
-    const stored = localStorage.getItem('freshblu_server_url');
-    if (stored) serverUrl = stored;
+    serverUrl = getServerUrl();
   });
 
   async function handlePing() {
     pinging = true;
     pingStatus = '';
-    localStorage.setItem('freshblu_server_url', serverUrl);
+    saveServerUrl(serverUrl);
     try {
       const client = new FreshBluClient(serverUrl);
       const res = await client.status();
