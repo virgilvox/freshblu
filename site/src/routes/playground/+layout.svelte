@@ -12,9 +12,10 @@
   });
 
   const navItems = [
-    { href: '/playground', label: 'Tester', icon: 'fa-flask-vial' },
+    { href: '/playground', label: 'Start', icon: 'fa-rocket' },
+    { href: '/playground/session', label: 'Session', icon: 'fa-terminal' },
     { href: '/playground/devices', label: 'Devices', icon: 'fa-microchip' },
-    { href: '/playground/api', label: 'API Explorer', icon: 'fa-code' },
+    { href: '/playground/api', label: 'API', icon: 'fa-code' },
     { href: '/playground/visualizer', label: 'Visualizer', icon: 'fa-diagram-project' },
   ];
 </script>
