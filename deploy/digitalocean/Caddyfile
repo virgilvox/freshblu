@@ -2,5 +2,14 @@
     @metrics path /metrics
     respond @metrics "Forbidden" 403
 
+    @preflight method OPTIONS
+    handle @preflight {
+        header Access-Control-Allow-Origin *
+        header Access-Control-Allow-Methods "GET, POST, PUT, DELETE, OPTIONS"
+        header Access-Control-Allow-Headers "Authorization, Content-Type, X-Meshblu-As"
+        header Access-Control-Max-Age 86400
+        respond "" 204
+    }
+
     reverse_proxy gateway:3000
 }
