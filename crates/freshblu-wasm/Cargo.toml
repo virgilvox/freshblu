@@ -1,6 +1,6 @@
 [package]
 name = "freshblu-wasm"
-version = "0.1.1"
+version = "0.1.2"
 edition = "2021"
 authors = ["FreshBlu Contributors"]
 license = "MIT OR Apache-2.0"
@@ -14,7 +14,7 @@ categories = ["wasm", "web-programming"]
 crate-type = ["cdylib", "rlib"]
 
 [dependencies]
-freshblu-core = { path = "../freshblu-core", version = "0.1.1", default-features = false }
+freshblu-core = { path = "../freshblu-core", version = "0.1.2", default-features = false }
 
 wasm-bindgen = "0.2"
 wasm-bindgen-futures = "0.4"
