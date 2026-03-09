@@ -13,9 +13,11 @@ export interface VaultDevice {
 const DB_NAME = 'freshblu-vault';
 const STORE_NAME = 'devices';
 const ACTIVE_KEY = 'freshblu_active_uuid';
+const PRIMARY_KEY = 'freshblu_primary_uuid';
 
 export const vaultDevices = writable<VaultDevice[]>([]);
 export const activeUuid = writable<string>('');
+export const primaryUuid = writable<string>('');
 
 let dbPromise: Promise<import('idb').IDBPDatabase> | null = null;
 
@@ -44,6 +46,8 @@ export async function initVault() {
   vaultDevices.set(devices);
   const stored = localStorage.getItem(ACTIVE_KEY);
   if (stored) activeUuid.set(stored);
+  const primary = localStorage.getItem(PRIMARY_KEY);
+  if (primary) primaryUuid.set(primary);
 }
 
 export async function addToVault(device: VaultDevice) {
@@ -71,6 +75,7 @@ export async function clearVault() {
   vaultDevices.set([]);
   activeUuid.set('');
   localStorage.removeItem(ACTIVE_KEY);
+  // NOTE: primary key is NOT cleared — it's the recovery key
 }
 
 export function setActiveDevice(uuid: string) {
@@ -83,6 +88,39 @@ export function getActiveCredentials(): { uuid: string; token: string } | null {
   const devices = get(vaultDevices);
   const active = get(activeUuid);
   const device = devices.find((d) => d.uuid === active);
+  if (!device) return null;
+  return { uuid: device.uuid, token: device.token };
+}
+
+// -- Primary device helpers --
+
+export function setPrimaryDevice(uuid: string) {
+  if (!browser) return;
+  primaryUuid.set(uuid);
+  localStorage.setItem(PRIMARY_KEY, uuid);
+}
+
+export function getPrimaryDevice(): string | null {
+  if (!browser) return null;
+  return localStorage.getItem(PRIMARY_KEY);
+}
+
+export function clearPrimaryDevice() {
+  if (!browser) return;
+  primaryUuid.set('');
+  localStorage.removeItem(PRIMARY_KEY);
+}
+
+export function hasPrimaryDevice(): boolean {
+  if (!browser) return false;
+  return !!localStorage.getItem(PRIMARY_KEY);
+}
+
+export function getPrimaryCredentials(): { uuid: string; token: string } | null {
+  const primary = getPrimaryDevice();
+  if (!primary) return null;
+  const devices = get(vaultDevices);
+  const device = devices.find((d) => d.uuid === primary);
   if (!device) return null;
   return { uuid: device.uuid, token: device.token };
 }

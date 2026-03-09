@@ -5,7 +5,7 @@
   import { FreshBluClient } from '$lib/api/client';
   import { FreshBluWs } from '$lib/api/ws';
   import { createEventStore, type EventItem } from '$lib/stores/events';
-  import { addToVault, vaultDevices } from '$lib/stores/vault';
+  import { addToVault, vaultDevices, hasPrimaryDevice, getPrimaryCredentials } from '$lib/stores/vault';
   import type { VaultDevice } from '$lib/stores/vault';
   import type { SubscriptionType } from '$lib/api/types';
 
@@ -77,6 +77,21 @@
       panelToken = res.token;
       eventStore.push('registered', { uuid: res.uuid });
       await addToVault({ uuid: res.uuid, token: res.token, label: `${label}`, addedAt: Date.now() });
+
+      // Auto-claim with primary if available
+      if (hasPrimaryDevice()) {
+        const primaryCreds = getPrimaryCredentials();
+        if (primaryCreds) {
+          try {
+            const primaryClient = new FreshBluClient(serverUrl);
+            primaryClient.setCredentials(primaryCreds.uuid, primaryCreds.token);
+            await primaryClient.claimDevice(res.uuid);
+            eventStore.push('claimed', { uuid: res.uuid, owner: primaryCreds.uuid });
+          } catch {
+            eventStore.push('warn', { message: 'Claim failed — device not recoverable' });
+          }
+        }
+      }
     } catch (e) {
       eventStore.push('error', { message: (e as Error).message });
     }

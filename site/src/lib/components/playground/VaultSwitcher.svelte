@@ -1,20 +1,23 @@
 <script lang="ts">
   import { onDestroy } from 'svelte';
-  import { vaultDevices, activeUuid, removeFromVault, clearVault, setActiveDevice } from '$lib/stores/vault';
+  import { vaultDevices, activeUuid, primaryUuid, removeFromVault, clearVault, setActiveDevice } from '$lib/stores/vault';
   import { uuid, token } from '$lib/stores/auth';
   import { api, syncApiBaseUrl } from '$lib/api/client';
   import type { VaultDevice } from '$lib/stores/vault';
 
   let devices: VaultDevice[] = $state([]);
   let active: string = $state('');
+  let primary: string = $state('');
   let open = $state(false);
 
   const unsubDevices = vaultDevices.subscribe((v) => (devices = v));
   const unsubActive = activeUuid.subscribe((v) => (active = v));
+  const unsubPrimary = primaryUuid.subscribe((v) => (primary = v));
 
   onDestroy(() => {
     unsubDevices();
     unsubActive();
+    unsubPrimary();
   });
 
   function switchDevice(device: VaultDevice) {
@@ -76,6 +79,9 @@
             >
               <span class="vault-dot" class:active={device.uuid === active}></span>
               <span class="vault-uuid">{truncate(device.uuid)}</span>
+              {#if device.uuid === primary}
+                <span class="vault-primary"><i class="fa-solid fa-key"></i></span>
+              {/if}
               {#if device.label}
                 <span class="vault-label">{device.label}</span>
               {/if}
@@ -199,6 +205,11 @@
   .vault-uuid {
     font-family: var(--font-body);
     color: var(--pulse);
+  }
+  .vault-primary {
+    color: var(--warn);
+    font-size: 9px;
+    flex-shrink: 0;
   }
   .vault-label {
     color: var(--ink-muted);
