@@ -31,6 +31,9 @@
 
   async function remove(e: Event, deviceUuid: string) {
     e.stopPropagation();
+    if (deviceUuid === primary) {
+      if (!confirm('This is your PRIMARY KEY. Removing it will require recovery to restore your vault. Continue?')) return;
+    }
     await removeFromVault(deviceUuid);
   }
 
@@ -81,13 +84,13 @@
             >
               <span class="vault-dot" class:active={device.uuid === active}></span>
               <span class="vault-id">
-                <span class="vault-name">{device.label || device.type || truncate(device.uuid)}</span>
+                <span class="vault-name">{device.name || device.label || device.type || truncate(device.uuid)}</span>
                 {#if device.label || device.type}
                   <span class="vault-uuid-sub">{truncate(device.uuid)}</span>
                 {/if}
               </span>
               {#if device.uuid === primary}
-                <span class="vault-primary"><i class="fa-solid fa-key"></i></span>
+                <span class="vault-primary"><i class="fa-solid fa-key"></i> PK</span>
               {/if}
               <button class="vault-remove" onclick={(e) => remove(e, device.uuid)} title="Remove">
                 <i class="fa-solid fa-xmark"></i>

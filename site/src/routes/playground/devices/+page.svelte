@@ -7,7 +7,7 @@
   import RegisterDeviceModal from '$lib/components/playground/RegisterDeviceModal.svelte';
   import { FreshBluHttp, api, syncApiBaseUrl, getServerUrl } from '$lib/api/client';
   import { uuid, token } from '$lib/stores/auth';
-  import { vaultDevices, addToVault, removeFromVault, setActiveDevice } from '$lib/stores/vault';
+  import { vaultDevices, addToVault, removeFromVault, setActiveDevice, primaryUuid } from '$lib/stores/vault';
   import { goto } from '$app/navigation';
   import type { Device } from '$lib/api/client';
   import type { VaultDevice } from '$lib/stores/vault';
@@ -24,14 +24,17 @@
   // Active device credentials (reactive)
   let activeUuid = $state('');
   let activeToken = $state('');
+  let currentPrimary = $state('');
   const unsubUuid = uuid.subscribe(v => activeUuid = v);
   const unsubToken = token.subscribe(v => activeToken = v);
   const unsubVault = vaultDevices.subscribe(v => vault = v);
+  const unsubPrimary = primaryUuid.subscribe(v => currentPrimary = v);
 
   onDestroy(() => {
     unsubVault();
     unsubUuid();
     unsubToken();
+    unsubPrimary();
   });
 
   /** Find label for the active device */
@@ -123,14 +126,22 @@
   }
 
   async function handleRemoveFromVault(deviceUuid: string) {
-    if (!confirm('Remove this device from vault? You will lose the stored token.')) return;
+    const isPrimary = deviceUuid === currentPrimary;
+    const msg = isPrimary
+      ? 'This is your PRIMARY KEY. Removing it will require recovery to restore your vault. Are you sure?'
+      : 'Remove this device from vault? You will lose the stored token.';
+    if (!confirm(msg)) return;
     await removeFromVault(deviceUuid);
     liveStatus.delete(deviceUuid);
     liveStatus = new Map(liveStatus);
   }
 
   async function handleDelete(deviceUuid: string) {
-    if (!confirm('Delete this device permanently? This cannot be undone.')) return;
+    const isPrimary = deviceUuid === currentPrimary;
+    const msg = isPrimary
+      ? 'WARNING: This is your PRIMARY KEY. Deleting it permanently will make vault recovery impossible. This cannot be undone.'
+      : 'Delete this device permanently? This cannot be undone.';
+    if (!confirm(msg)) return;
     try {
       await api.unregister(deviceUuid);
       await removeFromVault(deviceUuid);
@@ -225,11 +236,11 @@
     <div class="device-grid">
       {#each vault as vd (vd.uuid)}
         {@const device = toDevice(vd)}
-        {@const isPrimary = vd.uuid === activeUuid}
+        {@const isPrimary = vd.uuid === currentPrimary}
         <div class="device-card-wrap">
           <div class="card-badges">
             {#if isPrimary}
-              <Badge variant="pulse"><i class="fa-solid fa-star"></i> Primary</Badge>
+              <Badge variant="warn"><i class="fa-solid fa-key"></i> Primary Key</Badge>
             {:else}
               <Badge variant="pulse"><i class="fa-solid fa-lock"></i> Vault</Badge>
             {/if}
@@ -239,7 +250,7 @@
               <Badge variant={device.online ? 'online' : 'muted'}>{device.online ? 'Online' : 'Offline'}</Badge>
             {/if}
           </div>
-          <DeviceCard {device} onclick={() => goto(`/playground/devices/${device.uuid}`)} />
+          <DeviceCard {device} {isPrimary} onclick={() => goto(`/playground/devices/${device.uuid}`)} />
           <div class="card-actions">
             <button class="action-btn" onclick={() => goto(`/playground/devices/${device.uuid}`)} title="View">
               <i class="fa-solid fa-eye"></i>

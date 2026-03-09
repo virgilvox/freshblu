@@ -5,9 +5,10 @@
   interface Props {
     device: Device;
     onclick?: () => void;
+    isPrimary?: boolean;
   }
 
-  let { device, onclick }: Props = $props();
+  let { device, onclick, isPrimary = false }: Props = $props();
 
   const icons: Record<string, string> = {
     microchip: 'fa-microchip',
@@ -39,7 +40,10 @@
     <i class="fa-solid {getIcon(device)} device-icon"></i>
     <StatusDot status={device.online ? 'online' : 'fault'} />
   </div>
-  <div class="device-uuid">{truncateUuid(device.uuid)}</div>
+  <div class="device-uuid">
+    {#if isPrimary}<i class="fa-solid fa-key primary-icon"></i>{/if}
+    {truncateUuid(device.uuid)}
+  </div>
   <div class="device-name">{device.name || 'Unnamed Device'}</div>
   {#if device.type}
     <div class="device-type">{device.type}</div>
@@ -79,6 +83,13 @@
     white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
+    display: flex;
+    align-items: center;
+    gap: 4px;
+  }
+  .primary-icon {
+    color: var(--warn);
+    font-size: 9px;
   }
   .device-name {
     font-family: var(--font-display);

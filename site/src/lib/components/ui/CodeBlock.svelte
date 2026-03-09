@@ -31,10 +31,21 @@
   let copied = $state(false);
   let highlighted = $state('');
 
-  onMount(() => {
+  function doHighlight() {
     if (lang && hljs.getLanguage(lang)) {
       highlighted = hljs.highlight(code, { language: lang }).value;
+    } else {
+      highlighted = '';
     }
+  }
+
+  onMount(doHighlight);
+
+  $effect(() => {
+    // Re-highlight when code or lang changes
+    void code;
+    void lang;
+    doHighlight();
   });
 
   function copyCode() {

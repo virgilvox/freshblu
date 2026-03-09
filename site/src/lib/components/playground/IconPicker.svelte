@@ -5,6 +5,7 @@
   }
 
   let { selected, onSelect }: Props = $props();
+  let open = $state(false);
 
   const icons = [
     { key: 'microchip', icon: 'fa-microchip' },
@@ -20,23 +21,71 @@
     { key: 'plug', icon: 'fa-plug' },
     { key: 'server', icon: 'fa-server' },
   ];
+
+  function getIconClass(key: string): string {
+    return icons.find(i => i.key === key)?.icon || 'fa-microchip';
+  }
+
+  function handleSelect(key: string) {
+    onSelect(key);
+    open = false;
+  }
 </script>
 
 <div class="icon-picker">
-  {#each icons as { key, icon }}
-    <button
-      class="icon-btn"
-      class:active={selected === key}
-      onclick={() => onSelect(key)}
-      title={key}
-    >
-      <i class="fa-solid {icon}"></i>
-    </button>
-  {/each}
+  <button class="icon-trigger" onclick={() => open = !open} type="button">
+    <i class="fa-solid {getIconClass(selected)} trigger-icon"></i>
+    <span class="trigger-label">{selected || 'Select icon'}</span>
+    <i class="fa-solid fa-chevron-down trigger-chevron" class:open></i>
+  </button>
+  {#if open}
+    <div class="icon-grid">
+      {#each icons as { key, icon }}
+        <button
+          class="icon-btn"
+          class:active={selected === key}
+          onclick={() => handleSelect(key)}
+          title={key}
+          type="button"
+        >
+          <i class="fa-solid {icon}"></i>
+        </button>
+      {/each}
+    </div>
+  {/if}
 </div>
 
 <style>
   .icon-picker {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+  }
+  .icon-trigger {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    background: var(--void);
+    border: 1px solid var(--border);
+    color: var(--ink-soft);
+    padding: 6px 12px;
+    cursor: pointer;
+    font-family: var(--font-ui);
+    font-size: var(--text-xs);
+    letter-spacing: 0.08em;
+    transition: border-color var(--dur-fast);
+    width: fit-content;
+  }
+  .icon-trigger:hover { border-color: var(--pulse); }
+  .trigger-icon { color: var(--pulse); font-size: var(--text-sm); }
+  .trigger-label { text-transform: uppercase; color: var(--ink-muted); }
+  .trigger-chevron {
+    font-size: 8px;
+    margin-left: 4px;
+    transition: transform var(--dur-fast);
+  }
+  .trigger-chevron.open { transform: rotate(180deg); }
+  .icon-grid {
     display: grid;
     grid-template-columns: repeat(6, 1fr);
     gap: 4px;

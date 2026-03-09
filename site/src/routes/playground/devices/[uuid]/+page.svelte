@@ -13,18 +13,21 @@
   import { uuid as authUuid, token as authToken } from '$lib/stores/auth';
   import Badge from '$lib/components/ui/Badge.svelte';
   import Button from '$lib/components/ui/Button.svelte';
-  import { vaultDevices } from '$lib/stores/vault';
+  import { vaultDevices, primaryUuid } from '$lib/stores/vault';
   import type { Device, Whitelists, Forwarders } from '$lib/api/client';
   import type { VaultDevice } from '$lib/stores/vault';
 
   let vault: VaultDevice[] = $state([]);
   let currentAuthUuid = $state('');
+  let currentPrimary = $state('');
   const unsubVault = vaultDevices.subscribe(v => vault = v);
   const unsubAuth = authUuid.subscribe(v => currentAuthUuid = v);
+  const unsubPrimary = primaryUuid.subscribe(v => currentPrimary = v);
 
   onDestroy(() => {
     unsubVault();
     unsubAuth();
+    unsubPrimary();
   });
 
   function isInVault(deviceUuid: string): boolean {
@@ -112,7 +115,9 @@
       <div class="detail-info">
         <StatusDot status={device.online ? 'online' : 'fault'} />
         <h1 class="detail-uuid">{device.uuid}</h1>
-        {#if isInVault(device.uuid)}
+        {#if device.uuid === currentPrimary}
+          <Badge variant="warn"><i class="fa-solid fa-key"></i> Primary Key</Badge>
+        {:else if isInVault(device.uuid)}
           <Badge variant="pulse"><i class="fa-solid fa-lock"></i> In Vault</Badge>
         {/if}
       </div>
@@ -152,6 +157,8 @@
         <WhitelistEditor
           whitelists={device.meshblu.whitelists}
           onSave={saveWhitelists}
+          vaultDevices={vault}
+          primaryUuid={currentPrimary}
         />
       {:else if activeTab === 'Webhooks'}
         <WebhookEditor
