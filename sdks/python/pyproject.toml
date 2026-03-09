@@ -4,7 +4,7 @@ build-backend = "hatchling.build"
 
 [project]
 name = "freshblu"
-version = "0.1.0"
+version = "1.0.0"
 description = "FreshBlu Python SDK - Meshblu-compatible IoT messaging"
 readme = "README.md"
 license = {text = "MIT"}
@@ -18,7 +18,7 @@ ws = ["websockets>=12.0", "httpx>=0.25.0"]
 all = ["httpx>=0.25.0", "websockets>=12.0"]
 
 [project.urls]
-Homepage = "https://github.com/youorg/freshblu"
+Homepage = "https://github.com/virgilvox/freshblu"
 
 [tool.hatch.build.targets.wheel]
 packages = ["freshblu"]

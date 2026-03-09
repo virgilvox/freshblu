@@ -1,5 +1,6 @@
 <script lang="ts">
   import LogoFull from '../brand/LogoFull.svelte';
+  import ThemeToggle from '../ui/ThemeToggle.svelte';
   import { page } from '$app/state';
 
   const links = [
@@ -34,6 +35,7 @@
         <i class="fa-brands fa-github"></i>
         GitHub
       </a>
+      <ThemeToggle />
     </div>
   </div>
 </nav>

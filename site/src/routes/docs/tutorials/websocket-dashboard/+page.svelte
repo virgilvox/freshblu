@@ -44,7 +44,7 @@
   <CodeBlock lang="javascript" code={`const UUID  = 'YOUR_UUID';
 const TOKEN = 'YOUR_TOKEN';
 
-const ws = new WebSocket('ws://localhost:3000/ws');
+const ws = new WebSocket('wss://api.freshblu.org/ws');
 const statusEl = document.getElementById('status');
 
 ws.onopen = () => {
@@ -137,12 +137,12 @@ sendBtn.addEventListener('click', () => {
 });`} />
   <p>The full dashboard is two files. Open the HTML in a browser, fill in your credentials in <code>dashboard.js</code>, and you have a live view of your device mesh.</p>
 
-  <h2>Alternative: Using the SDK</h2>
-  <p>The same dashboard can be built with much less code using the <code>freshblu</code> package. Install it via npm or include via CDN:</p>
+  <h2>Alternative: Using the JS SDK</h2>
+  <p>The same dashboard can be built with much less code using the <code>freshblu</code> npm package. Install via npm or include via CDN:</p>
   <CodeBlock lang="html" code={`<script src="https://unpkg.com/freshblu@1.0.0/dist/index.global.js"><\/script>
 <script>
   // FreshBlu is available as a global after the script tag
-  const client = new FreshBlu('ws://localhost:3000');
+  const client = new FreshBlu('wss://api.freshblu.org');
   client.setCredentials('YOUR_UUID', 'YOUR_TOKEN');
 
   client.on('message', (event) => {
@@ -167,6 +167,27 @@ sendBtn.addEventListener('click', () => {
   });
 <\/script>`} />
   <p>No separate JS file needed. The SDK handles authentication, reconnection, and JSON framing for you.</p>
+
+  <h2>Alternative: Python Backend</h2>
+  <p>For a Python backend that listens for device messages, install the SDK from PyPI:</p>
+  <CodeBlock lang="bash" code={`pip install freshblu[ws]`} />
+  <CodeBlock lang="python" code={`from freshblu import FreshBlu
+
+client = FreshBlu("https://api.freshblu.org")
+client.set_credentials("YOUR_UUID", "YOUR_TOKEN")
+
+client.on("message", lambda event:
+    print(f"[{event['fromUuid']}] {event['payload']}")
+)
+
+client.connect()
+print("Listening for messages...")
+
+# Keep the main thread alive
+import time
+while True:
+    time.sleep(1)`} />
+  <p>See the full <a href="/docs/reference/python-client">Python SDK reference</a> for all available methods.</p>
 </div>
 
 <style>

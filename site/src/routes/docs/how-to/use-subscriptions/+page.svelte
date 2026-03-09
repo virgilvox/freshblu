@@ -15,7 +15,7 @@
   <p>POST to <code>/devices/:subscriber_uuid/subscriptions</code> with the emitter UUID and subscription type.</p>
   <CodeBlock lang="bash" code={`CREDS=$(echo -n "SUBSCRIBER_UUID:SUBSCRIBER_TOKEN" | base64)
 
-curl -X POST http://localhost:3000/devices/SUBSCRIBER_UUID/subscriptions \\
+curl -X POST https://api.freshblu.org/devices/SUBSCRIBER_UUID/subscriptions \\
   -H "Authorization: Basic $CREDS" \\
   -H "Content-Type: application/json" \\
   -d '{
@@ -56,7 +56,7 @@ curl -X POST http://localhost:3000/devices/SUBSCRIBER_UUID/subscriptions \\
   <h2>Subscribe to Broadcasts</h2>
   <p>The most common use case. Device B wants to receive all broadcasts from device A.</p>
   <CodeBlock lang="bash" code={`# Device B subscribes to Device A's broadcasts
-curl -X POST http://localhost:3000/devices/DEVICE_B/subscriptions \\
+curl -X POST https://api.freshblu.org/devices/DEVICE_B/subscriptions \\
   -H "Authorization: Basic $B_CREDS" \\
   -H "Content-Type: application/json" \\
   -d '{
@@ -68,7 +68,7 @@ curl -X POST http://localhost:3000/devices/DEVICE_B/subscriptions \\
 
   <h2>Monitor Config Changes</h2>
   <p>Subscribe to <code>configure-sent</code> to get notified when a device updates its configuration.</p>
-  <CodeBlock lang="bash" code={`curl -X POST http://localhost:3000/devices/MONITOR_UUID/subscriptions \\
+  <CodeBlock lang="bash" code={`curl -X POST https://api.freshblu.org/devices/MONITOR_UUID/subscriptions \\
   -H "Authorization: Basic $MONITOR_CREDS" \\
   -H "Content-Type: application/json" \\
   -d '{
@@ -79,7 +79,7 @@ curl -X POST http://localhost:3000/devices/DEVICE_B/subscriptions \\
 
   <h2>Watch for Unregistration</h2>
   <p>Subscribe to <code>unregister-sent</code> to know when a device is removed.</p>
-  <CodeBlock lang="bash" code={`curl -X POST http://localhost:3000/devices/WATCHER_UUID/subscriptions \\
+  <CodeBlock lang="bash" code={`curl -X POST https://api.freshblu.org/devices/WATCHER_UUID/subscriptions \\
   -H "Authorization: Basic $WATCHER_CREDS" \\
   -H "Content-Type: application/json" \\
   -d '{
@@ -90,12 +90,12 @@ curl -X POST http://localhost:3000/devices/DEVICE_B/subscriptions \\
 
   <h2>List Subscriptions</h2>
   <p>GET a device's subscriptions to see what it is listening to.</p>
-  <CodeBlock lang="bash" code={`curl http://localhost:3000/devices/MY_UUID/subscriptions \\
+  <CodeBlock lang="bash" code={`curl https://api.freshblu.org/devices/MY_UUID/subscriptions \\
   -H "Authorization: Basic $CREDS"`} />
 
   <h2>Delete a Subscription</h2>
   <p>DELETE by specifying the emitter UUID and subscription type in the path. Use the dot-separated type with dots replaced by hyphens.</p>
-  <CodeBlock lang="bash" code={`curl -X DELETE http://localhost:3000/devices/SUBSCRIBER_UUID/subscriptions/EMITTER_UUID/broadcast-sent \\
+  <CodeBlock lang="bash" code={`curl -X DELETE https://api.freshblu.org/devices/SUBSCRIBER_UUID/subscriptions/EMITTER_UUID/broadcast-sent \\
   -H "Authorization: Basic $CREDS"`} />
   <p>Response:</p>
   <CodeBlock lang="json" code={`{"deleted": true}`} />
@@ -103,7 +103,7 @@ curl -X POST http://localhost:3000/devices/DEVICE_B/subscriptions \\
   <h2>Subscription for Another Device</h2>
   <p>You can create subscriptions on behalf of another device if you have <code>configure.update</code> permission on that device.</p>
   <CodeBlock lang="bash" code={`# Admin creates a subscription for SENSOR_UUID
-curl -X POST http://localhost:3000/devices/SENSOR_UUID/subscriptions \\
+curl -X POST https://api.freshblu.org/devices/SENSOR_UUID/subscriptions \\
   -H "Authorization: Basic $ADMIN_CREDS" \\
   -H "Content-Type: application/json" \\
   -d '{

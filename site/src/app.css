@@ -103,6 +103,45 @@
   --dur-slow:    350ms;
 }
 
+/* ---- LIGHT MODE ---- */
+[data-theme="light"] {
+  --void:       #f8f9fc;
+  --void-lift:  #ffffff;
+  --void-high:  #f0f2f7;
+  --void-rim:   #e4e8f0;
+  --static:     #d8dde8;
+
+  --ink:        #1a1e2e;
+  --ink-soft:   #3d4663;
+  --ink-muted:  #7a849e;
+  --ink-ghost:  #c0c6d4;
+
+  --pulse:      #0066dd;
+  --pulse-up:   #0055bb;
+  --pulse-dim:  rgba(0,102,221,0.12);
+  --pulse-glow: rgba(0,102,221,0.08);
+  --pulse-ring: rgba(0,102,221,0.25);
+
+  --signal:     #0099cc;
+  --signal-dim: rgba(0,153,204,0.12);
+
+  --online:     #00a85e;
+  --warn:       #d48800;
+  --fault:      #dd2233;
+  --pending:    #7c5ee6;
+
+  --border:        rgba(0,0,0,0.08);
+  --border-strong: rgba(0,0,0,0.15);
+  --border-pulse:  rgba(0,102,221,0.35);
+  --border-signal: rgba(0,153,204,0.3);
+
+  --shadow-sm:     1px 1px 0 rgba(0,0,0,0.08);
+  --shadow-md:     2px 2px 0 rgba(0,0,0,0.08);
+  --shadow-pulse:  2px 2px 0 rgba(0,102,221,0.2);
+  --shadow-glow:   0 0 16px rgba(0,102,221,0.1);
+  --shadow-sharp:  2px 2px 0 rgba(0,0,0,0.12);
+}
+
 /* ---- RESET ---- */
 *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 html { scroll-behavior: smooth; }
@@ -127,6 +166,11 @@ body::after {
   opacity: 0.04;
   mix-blend-mode: overlay;
   background: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.75' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)'/%3E%3C/svg%3E");
+}
+
+/* ---- LIGHT MODE: disable noise overlay ---- */
+[data-theme="light"] body::after {
+  display: none;
 }
 
 /* ---- STATUS DOT ANIMATION ---- */

@@ -17,6 +17,8 @@
   <div class="install-section">
     <span class="install-label">Install</span>
     <CodeBlock code={`npm install freshblu`} lang="bash" />
+    <span class="install-or">or</span>
+    <CodeBlock code={`pip install freshblu`} lang="bash" />
     <span class="install-or">or via CDN</span>
     <CodeBlock code={`<script src="https://unpkg.com/freshblu/dist/index.global.js"><\/script>`} lang="html" />
   </div>

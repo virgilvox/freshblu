@@ -20,7 +20,7 @@
   <p>Update the device to add a webhook that fires on every outgoing message:</p>
   <CodeBlock lang="bash" code={`CREDS=$(echo -n "UUID:TOKEN" | base64)
 
-curl -X PUT http://localhost:3000/devices/MY_UUID \\
+curl -X PUT https://api.freshblu.org/devices/MY_UUID \\
   -H "Authorization: Basic $CREDS" \\
   -H "Content-Type: application/json" \\
   -d '{
@@ -73,7 +73,7 @@ curl -X PUT http://localhost:3000/devices/MY_UUID \\
   </ul>
 
   <h3>Fire on Config Changes</h3>
-  <CodeBlock lang="bash" code={`curl -X PUT http://localhost:3000/devices/MY_UUID \\
+  <CodeBlock lang="bash" code={`curl -X PUT https://api.freshblu.org/devices/MY_UUID \\
   -H "Authorization: Basic $CREDS" \\
   -H "Content-Type: application/json" \\
   -d '{
@@ -93,7 +93,7 @@ curl -X PUT http://localhost:3000/devices/MY_UUID \\
   }'`} />
 
   <h3>Fire on Unregistration</h3>
-  <CodeBlock lang="bash" code={`curl -X PUT http://localhost:3000/devices/MY_UUID \\
+  <CodeBlock lang="bash" code={`curl -X PUT https://api.freshblu.org/devices/MY_UUID \\
   -H "Authorization: Basic $CREDS" \\
   -H "Content-Type: application/json" \\
   -d '{
