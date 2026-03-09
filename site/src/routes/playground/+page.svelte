@@ -4,7 +4,7 @@
   import Badge from '$lib/components/ui/Badge.svelte';
   import Toast from '$lib/components/ui/Toast.svelte';
   import { FreshBluHttp, api, syncApiBaseUrl, getServerUrl, saveServerUrl } from '$lib/api/client';
-  import { addToVault, setActiveDevice, vaultDevices, setPrimaryDevice, hasPrimaryDevice, getPrimaryCredentials, getPrimaryDevice, primaryUuid } from '$lib/stores/vault';
+  import { addToVault, setActiveDevice, vaultDevices, setPrimaryDevice, clearPrimaryDevice, hasPrimaryDevice, getPrimaryCredentials, getPrimaryDevice, primaryUuid } from '$lib/stores/vault';
   import { uuid as authUuid, token as authToken } from '$lib/stores/auth';
   import type { VaultDevice } from '$lib/stores/vault';
 
@@ -19,6 +19,7 @@
   let toast: Toast;
   let showPrimarySave = $state(false);
   let primarySaved = $state(false);
+  let primarySaveCreds: { uuid: string; token: string } | null = $state(null);
 
   // Recovery state
   let recoverUuid = $state('');
@@ -77,10 +78,13 @@
       syncApiBaseUrl();
       api.setCredentials(res.uuid, res.token);
 
-      if (!hasPrimaryDevice()) {
-        // First device — make it the primary
+      if (!hasPrimaryDevice() || !getPrimaryCredentials()) {
+        // First device or orphaned primary — clean up and set as primary
+        clearPrimaryDevice();
         setPrimaryDevice(res.uuid);
+        primarySaveCreds = { uuid: res.uuid, token: res.token };
         showPrimarySave = true;
+        primarySaved = false;
         toast.show('Primary device created. Save your master key!', 'success');
       } else {
         // Auto-claim with primary credentials
@@ -180,6 +184,28 @@
     {/if}
   </div>
 
+  <!-- Welcome (first visit) -->
+  {#if vault.length === 0 && !currentPrimary}
+    <section class="section welcome-section">
+      <h2 class="section-title">Welcome to the Mesh</h2>
+      <p class="section-desc">The playground lets you interact with a live FreshBlu mesh — register devices, send messages, and watch data flow in real time.</p>
+      <div class="welcome-steps">
+        <div class="welcome-step">
+          <span class="step-number">1</span>
+          <span class="step-text">Register your first device to get a UUID and token</span>
+        </div>
+        <div class="welcome-step">
+          <span class="step-number">2</span>
+          <span class="step-text">Save your master key so you can recover your vault later</span>
+        </div>
+        <div class="welcome-step">
+          <span class="step-number">3</span>
+          <span class="step-text">Open a session, explore the API, or visualize the mesh</span>
+        </div>
+      </div>
+    </section>
+  {/if}
+
   <!-- Quick Register -->
   <section class="section">
     <h2 class="section-title">Register a Device</h2>
@@ -212,7 +238,7 @@
       </div>
     {/if}
 
-    {#if showPrimarySave && lastRegistered}
+    {#if showPrimarySave && primarySaveCreds}
       <div class="master-key-banner">
         <div class="master-key-header">
           <i class="fa-solid fa-key"></i>
@@ -222,21 +248,21 @@
         <div class="credentials-result">
           <div class="cred-row">
             <span class="cred-label">UUID</span>
-            <code class="cred-value">{lastRegistered.uuid}</code>
-            <button class="copy-btn" onclick={() => copyToClipboard(lastRegistered!.uuid, 'pk-uuid')} title="Copy UUID">
+            <code class="cred-value">{primarySaveCreds.uuid}</code>
+            <button class="copy-btn" onclick={() => copyToClipboard(primarySaveCreds!.uuid, 'pk-uuid')} title="Copy UUID">
               <i class="fa-solid {copied === 'pk-uuid' ? 'fa-check' : 'fa-copy'}"></i>
             </button>
           </div>
           <div class="cred-row">
             <span class="cred-label">Token</span>
-            <code class="cred-value">{lastRegistered.token}</code>
-            <button class="copy-btn" onclick={() => copyToClipboard(lastRegistered!.token, 'pk-token')} title="Copy Token">
+            <code class="cred-value">{primarySaveCreds.token}</code>
+            <button class="copy-btn" onclick={() => copyToClipboard(primarySaveCreds!.token, 'pk-token')} title="Copy Token">
               <i class="fa-solid {copied === 'pk-token' ? 'fa-check' : 'fa-copy'}"></i>
             </button>
           </div>
         </div>
         <div class="master-key-actions">
-          <Button size="sm" onclick={() => copyToClipboard(`${lastRegistered!.uuid}:${lastRegistered!.token}`, 'pk-both')}>
+          <Button size="sm" onclick={() => copyToClipboard(`${primarySaveCreds!.uuid}:${primarySaveCreds!.token}`, 'pk-both')}>
             <i class="fa-solid {copied === 'pk-both' ? 'fa-check' : 'fa-copy'}"></i>
             {copied === 'pk-both' ? 'Copied!' : 'Copy Both'}
           </Button>
@@ -288,9 +314,26 @@
 
   <!-- Vault Status -->
   {#if vault.length > 0}
+    {@const primaryDevice = currentPrimary ? vault.find(d => d.uuid === currentPrimary) : null}
     <section class="section vault-status">
       <i class="fa-solid fa-lock"></i>
       <span>{vault.length} device{vault.length === 1 ? '' : 's'} in vault.</span>
+      {#if primaryDevice}
+        <span class="vault-primary">
+          <i class="fa-solid fa-key"></i>
+          {primaryDevice.name || primaryDevice.type || primaryDevice.uuid.slice(0, 8)}
+        </span>
+        {#if !primarySaved}
+          <button class="vault-save-link" onclick={() => { showPrimarySave = true; primarySaveCreds = { uuid: primaryDevice.uuid, token: primaryDevice.token }; }}>
+            Save master key
+          </button>
+        {/if}
+      {:else if currentPrimary}
+        <span class="vault-orphan">
+          <i class="fa-solid fa-triangle-exclamation"></i>
+          Primary missing from vault
+        </span>
+      {/if}
       <a href="/playground/devices" class="vault-link">Manage devices</a>
     </section>
   {/if}
@@ -502,6 +545,64 @@
     align-items: center;
     flex-wrap: wrap;
   }
+
+  .welcome-section {
+    border: 1px solid var(--border);
+    background: var(--void-lift);
+    padding: 20px;
+  }
+  .welcome-steps {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+  }
+  .welcome-step {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    font-family: var(--font-ui);
+    font-size: var(--text-sm);
+    color: var(--ink-soft);
+  }
+  .step-number {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 24px;
+    height: 24px;
+    border: 1px solid var(--pulse);
+    color: var(--pulse);
+    font-family: var(--font-display);
+    font-size: var(--text-xs);
+    font-weight: 700;
+    flex-shrink: 0;
+  }
+  .vault-primary {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    color: var(--pulse);
+  }
+  .vault-orphan {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    color: var(--warn);
+  }
+  .vault-save-link {
+    background: none;
+    border: none;
+    color: var(--warn);
+    font-family: var(--font-ui);
+    font-size: var(--text-xs);
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    cursor: pointer;
+    padding: 0;
+    text-decoration: underline;
+    text-underline-offset: 2px;
+  }
+  .vault-save-link:hover { color: var(--ink); }
 
   @media (max-width: 600px) {
     .server-bar { flex-wrap: wrap; }

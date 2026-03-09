@@ -66,6 +66,11 @@ export async function removeFromVault(uuid: string) {
     activeUuid.set('');
     localStorage.removeItem(ACTIVE_KEY);
   }
+  if (get(primaryUuid) === uuid) {
+    primaryUuid.set('');
+    localStorage.removeItem(PRIMARY_KEY);
+    localStorage.removeItem('freshblu_primary_saved');
+  }
 }
 
 export async function clearVault() {
@@ -75,7 +80,9 @@ export async function clearVault() {
   vaultDevices.set([]);
   activeUuid.set('');
   localStorage.removeItem(ACTIVE_KEY);
-  // NOTE: primary key is NOT cleared — it's the recovery key
+  primaryUuid.set('');
+  localStorage.removeItem(PRIMARY_KEY);
+  localStorage.removeItem('freshblu_primary_saved');
 }
 
 export function setActiveDevice(uuid: string) {
@@ -109,6 +116,7 @@ export function clearPrimaryDevice() {
   if (!browser) return;
   primaryUuid.set('');
   localStorage.removeItem(PRIMARY_KEY);
+  localStorage.removeItem('freshblu_primary_saved');
 }
 
 export function hasPrimaryDevice(): boolean {
