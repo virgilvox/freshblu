@@ -1,8 +1,7 @@
 <script lang="ts">
   import { onMount, onDestroy } from 'svelte';
   import { vaultDevices } from '$lib/stores/vault';
-  import { getServerUrl } from '$lib/api/client';
-  import { FreshBluWs } from '$lib/api/ws';
+  import { FreshBluClient, getServerUrl } from '$lib/api/client';
   import type { VaultDevice } from '$lib/stores/vault';
 
   interface MeshNode {
@@ -23,7 +22,7 @@
   let devices: VaultDevice[] = $state([]);
   let nodes: MeshNode[] = $state([]);
   let edges: MeshEdge[] = $state([]);
-  let connections: Map<string, FreshBluWs> = new Map();
+  let connections: Map<string, FreshBluClient> = new Map();
   let messageCount = $state(0);
   let edgeIdCounter = 0;
   let animFrame: number;
@@ -61,13 +60,14 @@
   function connectDevice(device: VaultDevice) {
     if (connections.has(device.uuid)) return;
     const serverUrl = getServerUrl();
-    const ws = new FreshBluWs(device.uuid, device.token, serverUrl);
-    ws.on('message', (event) => {
-      const fromUuid = (event as Record<string, unknown>).fromUuid as string | undefined;
+    const ws = new FreshBluClient(serverUrl);
+    ws.setCredentials(device.uuid, device.token);
+    ws.on('message', (event: Record<string, unknown>) => {
+      const fromUuid = event.fromUuid as string | undefined;
       if (fromUuid) addEdge(fromUuid, device.uuid);
     });
-    ws.on('broadcast', (event) => {
-      const fromUuid = (event as Record<string, unknown>).fromUuid as string | undefined;
+    ws.on('broadcast', (event: Record<string, unknown>) => {
+      const fromUuid = event.fromUuid as string | undefined;
       if (fromUuid) addEdge(fromUuid, device.uuid);
     });
     ws.on('ready', () => {

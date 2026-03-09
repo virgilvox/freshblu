@@ -24,6 +24,7 @@
   }
 
   async function resetToken() {
+    if (!confirm('This will invalidate all existing tokens. Continue?')) return;
     const res = await api.resetToken(uuid);
     generatedToken = res.token;
   }

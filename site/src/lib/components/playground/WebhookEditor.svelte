@@ -1,5 +1,5 @@
 <script lang="ts">
-  import type { Forwarders, Forwarder } from '$lib/api/types';
+  import type { Forwarders, Forwarder } from '$lib/api/client';
   import Button from '../ui/Button.svelte';
   import Input from '../ui/Input.svelte';
 

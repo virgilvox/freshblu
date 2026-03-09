@@ -4,9 +4,9 @@ FreshBlu Python SDK
 Meshblu-compatible IoT device registry and messaging client.
 
 Usage:
-    from freshblu import FreshBlu
+    from freshblu import FreshBluHttp
 
-    client = FreshBlu(hostname="localhost", port=3000)
+    client = FreshBluHttp("https://api.freshblu.org")
 
     # Register
     device = client.register({"type": "temperature-sensor"})
@@ -16,7 +16,7 @@ Usage:
     client.message({"devices": ["*"], "payload": {"temp": 72.4}})
 
     # Subscribe
-    client.subscribe(
+    client.create_subscription(
         subscriber_uuid=device["uuid"],
         emitter_uuid=other_uuid,
         subscription_type="broadcast.sent"
@@ -65,22 +65,37 @@ class FreshBluError(Exception):
         self.status_code = status_code
 
 
+def _parse_url(url: str) -> tuple:
+    """Parse a URL string into (hostname, port, secure)."""
+    from urllib.parse import urlparse
+    parsed = urlparse(url)
+    secure = parsed.scheme in ("https", "wss")
+    hostname = parsed.hostname or "api.freshblu.org"
+    default_port = 443 if secure else 3000
+    port = parsed.port or default_port
+    return hostname, port, secure
+
+
 @dataclass
 class FreshBluConfig:
-    hostname: str = "localhost"
-    port: int = 3000
-    secure: bool = False
+    hostname: str = "api.freshblu.org"
+    port: int = 443
+    secure: bool = True
     uuid: Optional[str] = None
     token: Optional[str] = None
 
     @property
     def base_url(self) -> str:
         scheme = "https" if self.secure else "http"
+        if (self.secure and self.port == 443) or (not self.secure and self.port == 80):
+            return f"{scheme}://{self.hostname}"
         return f"{scheme}://{self.hostname}:{self.port}"
 
     @property
     def ws_url(self) -> str:
         scheme = "wss" if self.secure else "ws"
+        if (self.secure and self.port == 443) or (not self.secure and self.port == 80):
+            return f"{scheme}://{self.hostname}/ws"
         return f"{scheme}://{self.hostname}:{self.port}/ws"
 
     @property
@@ -94,8 +109,14 @@ class FreshBluConfig:
 class FreshBluHttp:
     """Synchronous HTTP client for FreshBlu."""
 
-    def __init__(self, config: Optional[FreshBluConfig] = None, **kwargs):
-        self.config = config or FreshBluConfig(**kwargs)
+    def __init__(self, url: Optional[str] = None, config: Optional[FreshBluConfig] = None, **kwargs):
+        if url is not None:
+            hostname, port, secure = _parse_url(url)
+            self.config = FreshBluConfig(hostname=hostname, port=port, secure=secure)
+        elif config is not None:
+            self.config = config
+        else:
+            self.config = FreshBluConfig(**kwargs)
         self._client = httpx.Client() if HAS_HTTPX else None
 
     def set_credentials(self, uuid: str, token: str) -> None:
@@ -191,7 +212,7 @@ class FreshBluHttp:
             {
                 "emitterUuid": emitter_uuid,
                 "subscriberUuid": subscriber_uuid,
-                "type": str(subscription_type),
+                "type": subscription_type.value if isinstance(subscription_type, SubscriptionType) else str(subscription_type),
             },
         )
 
@@ -202,7 +223,8 @@ class FreshBluHttp:
         subscription_type: Union[SubscriptionType, str],
     ) -> None:
         """Delete a subscription."""
-        type_str = str(subscription_type).replace(".", "-")
+        type_val = subscription_type.value if isinstance(subscription_type, SubscriptionType) else str(subscription_type)
+        type_str = type_val.replace(".", "-")
         self._request(
             "DELETE",
             f"/devices/{subscriber_uuid}/subscriptions/{emitter_uuid}/{type_str}",
@@ -230,6 +252,22 @@ class FreshBluHttp:
         """Revoke a token."""
         self._request("DELETE", f"/devices/{uuid}/tokens/{token}")
 
+    def my_devices(self) -> List[Dict]:
+        """Get devices owned by the authenticated device."""
+        return self._request("GET", "/mydevices")
+
+    def claim_device(self, uuid: str) -> Dict:
+        """Claim an unclaimed device."""
+        return self._request("PUT", f"/claimdevice/{uuid}")
+
+    def broadcast(self, payload: Dict) -> Dict:
+        """Broadcast a message to all subscribers."""
+        return self._request("POST", "/broadcasts", payload)
+
+    def reset_token(self, uuid: str) -> Dict:
+        """Reset all tokens for a device, returning a new one."""
+        return self._request("POST", f"/devices/{uuid}/token")
+
     def status(self) -> Dict:
         """Get server status."""
         return self._request("GET", "/status")
@@ -248,8 +286,8 @@ class FreshBlu(FreshBluHttp):
     Requires: pip install freshblu[ws]  (installs websockets)
     """
 
-    def __init__(self, **kwargs):
-        super().__init__(**kwargs)
+    def __init__(self, url: Optional[str] = None, **kwargs):
+        super().__init__(url=url, **kwargs)
         self._ws = None
         self._ws_thread: Optional[threading.Thread] = None
         self._listeners: Dict[str, List[Callable]] = {}
@@ -335,8 +373,12 @@ class FreshBlu(FreshBluHttp):
 class AsyncFreshBlu:
     """Async version - use with asyncio."""
 
-    def __init__(self, **kwargs):
-        self.config = FreshBluConfig(**kwargs)
+    def __init__(self, url: Optional[str] = None, **kwargs):
+        if url is not None:
+            hostname, port, secure = _parse_url(url)
+            self.config = FreshBluConfig(hostname=hostname, port=port, secure=secure)
+        else:
+            self.config = FreshBluConfig(**kwargs)
         self._client = httpx.AsyncClient() if HAS_HTTPX else None
 
     def set_credentials(self, uuid: str, token: str) -> None:

@@ -6,12 +6,21 @@
   import javascript from 'highlight.js/lib/languages/javascript';
   import typescript from 'highlight.js/lib/languages/typescript';
   import rust from 'highlight.js/lib/languages/rust';
+  import cpp from 'highlight.js/lib/languages/cpp';
+  import xml from 'highlight.js/lib/languages/xml';
+  import yaml from 'highlight.js/lib/languages/yaml';
+  import python from 'highlight.js/lib/languages/python';
 
   hljs.registerLanguage('bash', bash);
   hljs.registerLanguage('json', json);
   hljs.registerLanguage('javascript', javascript);
   hljs.registerLanguage('typescript', typescript);
   hljs.registerLanguage('rust', rust);
+  hljs.registerLanguage('cpp', cpp);
+  hljs.registerLanguage('html', xml);
+  hljs.registerLanguage('xml', xml);
+  hljs.registerLanguage('yaml', yaml);
+  hljs.registerLanguage('python', python);
 
   interface Props {
     code: string;
@@ -144,4 +153,16 @@
   :global(.hljs-section) {
     color: var(--pulse);
   }
+
+  /* ---- Light mode hljs overrides ---- */
+  :global([data-theme="light"]) :global(.hljs) { color: var(--ink-soft); }
+  :global([data-theme="light"]) :global(.hljs-number),
+  :global([data-theme="light"]) :global(.hljs-literal) { color: #986801; }
+  :global([data-theme="light"]) :global(.hljs-variable),
+  :global([data-theme="light"]) :global(.hljs-template-variable),
+  :global([data-theme="light"]) :global(.hljs-params) { color: #c18401; }
+  :global([data-theme="light"]) :global(.hljs-type),
+  :global([data-theme="light"]) :global(.hljs-title),
+  :global([data-theme="light"]) :global(.hljs-function) { color: #4078f2; }
+  :global([data-theme="light"]) :global(.hljs-property) { color: #e45649; }
 </style>

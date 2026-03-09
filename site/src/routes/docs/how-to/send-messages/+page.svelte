@@ -12,7 +12,7 @@
   <p>POST to <code>/messages</code> with a <code>devices</code> array of target UUIDs and a freeform <code>payload</code>.</p>
   <CodeBlock lang="bash" code={`CREDS=$(echo -n "SENDER_UUID:SENDER_TOKEN" | base64)
 
-curl -X POST http://localhost:3000/messages \\
+curl -X POST https://api.freshblu.org/messages \\
   -H "Authorization: Basic $CREDS" \\
   -H "Content-Type: application/json" \\
   -d '{
@@ -25,7 +25,7 @@ curl -X POST http://localhost:3000/messages \\
 
   <h2>Send to Multiple Devices</h2>
   <p>List multiple UUIDs in the <code>devices</code> array. Each target is checked independently for permissions.</p>
-  <CodeBlock lang="bash" code={`curl -X POST http://localhost:3000/messages \\
+  <CodeBlock lang="bash" code={`curl -X POST https://api.freshblu.org/messages \\
   -H "Authorization: Basic $CREDS" \\
   -H "Content-Type: application/json" \\
   -d '{
@@ -35,7 +35,7 @@ curl -X POST http://localhost:3000/messages \\
 
   <h2>Include a Topic</h2>
   <p>The optional <code>topic</code> field lets receivers filter or route messages.</p>
-  <CodeBlock lang="bash" code={`curl -X POST http://localhost:3000/messages \\
+  <CodeBlock lang="bash" code={`curl -X POST https://api.freshblu.org/messages \\
   -H "Authorization: Basic $CREDS" \\
   -H "Content-Type: application/json" \\
   -d '{
@@ -48,7 +48,7 @@ curl -X POST http://localhost:3000/messages \\
   <p>A broadcast delivers to all devices that have a <code>broadcast.sent</code> subscription to the sender. Two equivalent methods:</p>
 
   <h3>Option 1: POST /broadcasts</h3>
-  <CodeBlock lang="bash" code={`curl -X POST http://localhost:3000/broadcasts \\
+  <CodeBlock lang="bash" code={`curl -X POST https://api.freshblu.org/broadcasts \\
   -H "Authorization: Basic $CREDS" \\
   -H "Content-Type: application/json" \\
   -d '{
@@ -56,7 +56,7 @@ curl -X POST http://localhost:3000/messages \\
   }'`} />
 
   <h3>Option 2: POST /messages with wildcard</h3>
-  <CodeBlock lang="bash" code={`curl -X POST http://localhost:3000/messages \\
+  <CodeBlock lang="bash" code={`curl -X POST https://api.freshblu.org/messages \\
   -H "Authorization: Basic $CREDS" \\
   -H "Content-Type: application/json" \\
   -d '{
@@ -67,7 +67,7 @@ curl -X POST http://localhost:3000/messages \\
 
   <h2>Send Messages via WebSocket</h2>
   <p>After authenticating over WebSocket, send a <code>message</code> event frame.</p>
-  <CodeBlock lang="javascript" code={`const ws = new WebSocket('ws://localhost:3000/ws');
+  <CodeBlock lang="javascript" code={`const ws = new WebSocket('wss://api.freshblu.org/ws');
 
 ws.onopen = () => {
   ws.send(JSON.stringify({
@@ -98,7 +98,7 @@ ws.onmessage = (event) => {
 
   <h2>Send As Another Device</h2>
   <p>Use the <code>x-meshblu-as</code> header to send a message on behalf of another device. The as-device must have your UUID in its <code>message.as</code> whitelist.</p>
-  <CodeBlock lang="bash" code={`curl -X POST http://localhost:3000/messages \\
+  <CodeBlock lang="bash" code={`curl -X POST https://api.freshblu.org/messages \\
   -H "Authorization: Basic $CREDS" \\
   -H "x-meshblu-as: PROXY_DEVICE_UUID" \\
   -H "Content-Type: application/json" \\

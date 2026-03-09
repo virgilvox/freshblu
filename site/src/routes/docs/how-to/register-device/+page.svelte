@@ -10,7 +10,7 @@
 
   <h2>Basic Registration</h2>
   <p>POST to <code>/devices</code> with an empty body. The server assigns a UUID and generates a token.</p>
-  <CodeBlock lang="bash" code={`curl -X POST http://localhost:3000/devices \\
+  <CodeBlock lang="bash" code={`curl -X POST https://api.freshblu.org/devices \\
   -H "Content-Type: application/json" \\
   -d '{}'`} />
   <p>Response:</p>
@@ -26,7 +26,7 @@
 
   <h2>Set Device Type</h2>
   <p>Pass a <code>type</code> field to classify the device. This is freeform. Common values include <code>device:sensor</code>, <code>device:gateway</code>, or <code>device:controller</code>.</p>
-  <CodeBlock lang="bash" code={`curl -X POST http://localhost:3000/devices \\
+  <CodeBlock lang="bash" code={`curl -X POST https://api.freshblu.org/devices \\
   -H "Content-Type: application/json" \\
   -d '{
     "type": "device:temperature-sensor"
@@ -34,7 +34,7 @@
 
   <h2>Set Custom Properties</h2>
   <p>Any additional JSON fields in the body become device properties. These are stored and returned on subsequent queries.</p>
-  <CodeBlock lang="bash" code={`curl -X POST http://localhost:3000/devices \\
+  <CodeBlock lang="bash" code={`curl -X POST https://api.freshblu.org/devices \\
   -H "Content-Type: application/json" \\
   -d '{
     "type": "device:sensor",
@@ -45,7 +45,7 @@
 
   <h2>Set Initial Permissions</h2>
   <p>By default, new devices get open whitelists (wildcard <code>*</code> on all permission lists). To lock down a device at registration, pass the <code>meshblu.whitelists</code> block.</p>
-  <CodeBlock lang="bash" code={`curl -X POST http://localhost:3000/devices \\
+  <CodeBlock lang="bash" code={`curl -X POST https://api.freshblu.org/devices \\
   -H "Content-Type: application/json" \\
   -d '{
     "type": "device:sensor",
@@ -77,7 +77,7 @@
   <p>When the server runs with <code>open_registration</code> disabled, you must authenticate to register new devices. Pass credentials via Basic auth.</p>
   <CodeBlock lang="bash" code={`CREDS=$(echo -n "EXISTING_UUID:EXISTING_TOKEN" | base64)
 
-curl -X POST http://localhost:3000/devices \\
+curl -X POST https://api.freshblu.org/devices \\
   -H "Authorization: Basic $CREDS" \\
   -H "Content-Type: application/json" \\
   -d '{"type": "device:new-sensor"}'`} />
@@ -86,7 +86,7 @@ curl -X POST http://localhost:3000/devices \\
   <p>Confirm the device was created by calling <code>/whoami</code> with the new credentials.</p>
   <CodeBlock lang="bash" code={`NEW_CREDS=$(echo -n "NEW_UUID:NEW_TOKEN" | base64)
 
-curl http://localhost:3000/whoami \\
+curl https://api.freshblu.org/whoami \\
   -H "Authorization: Basic $NEW_CREDS"`} />
 </div>
 

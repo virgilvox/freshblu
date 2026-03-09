@@ -67,6 +67,68 @@ ws.onmessage = (e) => {
 ws.onerror = (err) => console.error('ws error', err);
 ws.onclose = () => console.log('disconnected');`} />
   <p>The connection stays open until you close it or the server shuts down. Messages arrive as they are sent. No polling required.</p>
+
+  <h2>5. Using the SDKs</h2>
+  <p>The same flow can be done with fewer lines using the published packages.</p>
+
+  <h3>JavaScript</h3>
+  <CodeBlock lang="bash" code={`npm install freshblu`} />
+  <CodeBlock lang="javascript" code={`import { FreshBlu, FreshBluHttp } from 'freshblu';
+
+const SERVER = 'https://api.freshblu.org';
+
+// 1. Register
+const http = new FreshBluHttp(SERVER);
+const device = await http.register({ type: 'sensor' });
+console.log('UUID:', device.uuid, 'Token:', device.token);
+
+// 2. Authenticate
+http.setCredentials(device.uuid, device.token);
+const me = await http.whoami();
+console.log('Online:', me.online);
+
+// 3. Send a message
+await http.message({
+  devices: ['TARGET_UUID'],
+  payload: { temp: 22.5 }
+});
+
+// 4. Listen via WebSocket
+const ws = new FreshBlu(SERVER);
+ws.setCredentials(device.uuid, device.token);
+ws.on('message', (event) => {
+  console.log('Received:', event.payload);
+});
+await ws.connect();`} />
+
+  <h3>Python</h3>
+  <CodeBlock lang="bash" code={`pip install freshblu`} />
+  <CodeBlock lang="python" code={`from freshblu import FreshBluHttp, FreshBlu
+
+SERVER = "https://api.freshblu.org"
+
+# 1. Register
+http = FreshBluHttp(SERVER)
+device = http.register({"type": "sensor"})
+print("UUID:", device["uuid"], "Token:", device["token"])
+
+# 2. Authenticate
+http.set_credentials(device["uuid"], device["token"])
+me = http.whoami()
+print("Online:", me["online"])
+
+# 3. Send a message
+http.message({
+    "devices": ["TARGET_UUID"],
+    "payload": {"temp": 22.5}
+})
+
+# 4. Listen via WebSocket (pip install freshblu[ws])
+ws = FreshBlu(SERVER)
+ws.set_credentials(device["uuid"], device["token"])
+ws.on("message", lambda event: print("Received:", event["payload"]))
+ws.connect()`} />
+  <p>See the full <a href="/docs/reference/javascript-client">JS SDK reference</a> and <a href="/docs/reference/python-client">Python SDK reference</a> for all available methods.</p>
 </div>
 
 <style>

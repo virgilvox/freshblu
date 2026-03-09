@@ -127,10 +127,10 @@ docker compose -f docker-compose.prod.yml up -d`} />
 docker compose -f docker-compose.prod.yml ps
 
 # Hit the status endpoint
-curl http://localhost:3000/status
+curl https://api.freshblu.org/status
 
 # Check metrics
-curl http://localhost:3000/metrics`} />
+curl https://api.freshblu.org/metrics`} />
 
   <h2>Add TLS with Caddy</h2>
   <p>Add a Caddy service to the compose file for automatic HTTPS:</p>

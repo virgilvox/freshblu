@@ -1,3 +1,7 @@
+<script lang="ts">
+  import CodeBlock from '$lib/components/ui/CodeBlock.svelte';
+</script>
+
 <svelte:head>
   <title>Documentation - FreshBlu</title>
 </svelte:head>
@@ -9,6 +13,15 @@
     It provides HTTP, WebSocket, and MQTT interfaces for device-to-device communication
     with fine-grained permission control.
   </p>
+
+  <div class="install-section">
+    <span class="install-label">Install</span>
+    <CodeBlock code={`npm install freshblu`} lang="bash" />
+    <span class="install-or">or</span>
+    <CodeBlock code={`pip install freshblu`} lang="bash" />
+    <span class="install-or">or via CDN</span>
+    <CodeBlock code={`<script src="https://unpkg.com/freshblu/dist/index.global.js"><\/script>`} lang="html" />
+  </div>
 
   <div class="docs-grid">
     <a href="/docs/tutorials/getting-started" class="doc-card">
@@ -87,6 +100,29 @@
     font-size: var(--text-sm);
     color: var(--ink-muted);
     line-height: var(--leading-normal);
+  }
+
+  .install-section {
+    margin-bottom: 40px;
+    padding: 16px 20px;
+    background: var(--void-lift);
+    border: 1px solid var(--border);
+  }
+  .install-label {
+    font-family: var(--font-ui);
+    font-size: 9px;
+    letter-spacing: 0.15em;
+    text-transform: uppercase;
+    color: var(--pulse);
+    display: block;
+    margin-bottom: 8px;
+  }
+  .install-or {
+    font-family: var(--font-ui);
+    font-size: var(--text-xs);
+    color: var(--ink-muted);
+    display: block;
+    margin: 8px 0;
   }
 
   @media (max-width: 600px) {

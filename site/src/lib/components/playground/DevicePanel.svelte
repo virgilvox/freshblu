@@ -2,12 +2,10 @@
   import { onDestroy } from 'svelte';
   import Button from '$lib/components/ui/Button.svelte';
   import Badge from '$lib/components/ui/Badge.svelte';
-  import { FreshBluClient } from '$lib/api/client';
-  import { FreshBluWs } from '$lib/api/ws';
+  import { FreshBluClient, type SubscriptionType } from '$lib/api/client';
   import { createEventStore, type EventItem } from '$lib/stores/events';
   import { addToVault, vaultDevices, hasPrimaryDevice, getPrimaryCredentials } from '$lib/stores/vault';
   import type { VaultDevice } from '$lib/stores/vault';
-  import type { SubscriptionType } from '$lib/api/types';
 
   interface Props {
     id: string;
@@ -58,7 +56,7 @@
   }
 
   let client: FreshBluClient | null = null;
-  let ws: FreshBluWs | null = null;
+  let ws: FreshBluClient | null = null;
 
   function getClient(): FreshBluClient {
     if (!client) client = new FreshBluClient(serverUrl);
@@ -104,9 +102,10 @@
     statusText = 'Connecting...';
     try {
       ws?.close();
-      ws = new FreshBluWs(panelUuid, panelToken, serverUrl);
-      ws.on('*', (event) => {
-        eventStore.push(event.event, event as Record<string, unknown>, (event as Record<string, unknown>).fromUuid as string | undefined);
+      ws = new FreshBluClient(serverUrl);
+      ws.setCredentials(panelUuid, panelToken);
+      ws.on('*', (event: Record<string, unknown>) => {
+        eventStore.push(event.event as string, event, event.fromUuid as string | undefined);
       });
       ws.on('ready', () => {
         connected = true;
@@ -148,7 +147,7 @@
     loading = 'subscribe';
     try {
       const c = getClient();
-      await c.createSubscription(panelUuid, subEmitter, subType);
+      await c.createSubscription({ subscriberUuid: panelUuid, emitterUuid: subEmitter, type: subType });
       eventStore.push('subscribed', { emitterUuid: subEmitter, type: subType });
     } catch (e) {
       eventStore.push('error', { message: (e as Error).message });
@@ -179,7 +178,7 @@
           ws.sendMessage(sendTo ? [sendTo] : [], payload, sendTopic || undefined);
         } else {
           const c = getClient();
-          await c.sendMessage({ devices: [sendTo], payload, topic: sendTopic || undefined });
+          await c.message({ devices: [sendTo], payload, topic: sendTopic || undefined });
         }
       }
       eventStore.push('sent', { to: sendTo || '*', topic: sendTopic, payload });

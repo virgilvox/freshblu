@@ -3,7 +3,7 @@
   import Button from '$lib/components/ui/Button.svelte';
   import Badge from '$lib/components/ui/Badge.svelte';
   import Toast from '$lib/components/ui/Toast.svelte';
-  import { FreshBluClient, api, syncApiBaseUrl, getServerUrl, saveServerUrl } from '$lib/api/client';
+  import { FreshBluHttp, api, syncApiBaseUrl, getServerUrl, saveServerUrl } from '$lib/api/client';
   import { addToVault, setActiveDevice, vaultDevices, setPrimaryDevice, hasPrimaryDevice, getPrimaryCredentials, getPrimaryDevice, primaryUuid } from '$lib/stores/vault';
   import { uuid as authUuid, token as authToken } from '$lib/stores/auth';
   import type { VaultDevice } from '$lib/stores/vault';
@@ -42,7 +42,7 @@
     pingStatus = '';
     saveServerUrl(serverUrl);
     try {
-      const client = new FreshBluClient(serverUrl);
+      const client = new FreshBluHttp(serverUrl);
       const res = await client.status();
       pingStatus = res.meshblu ? 'online' : 'offline';
     } catch {
@@ -56,13 +56,21 @@
     lastRegistered = null;
     try {
       saveServerUrl(serverUrl);
-      const client = new FreshBluClient(serverUrl);
+      const client = new FreshBluHttp(serverUrl);
       const params: Record<string, unknown> = {};
       if (regType) params.type = regType;
       if (regName) params.name = regName;
       const res = await client.register(Object.keys(params).length > 0 ? params : undefined);
       lastRegistered = { uuid: res.uuid, token: res.token };
-      await addToVault({ uuid: res.uuid, token: res.token, addedAt: Date.now() });
+
+      await addToVault({
+        uuid: res.uuid,
+        token: res.token,
+        name: regName || undefined,
+        type: regType || undefined,
+        addedAt: Date.now(),
+      });
+
       setActiveDevice(res.uuid);
       authUuid.set(res.uuid);
       authToken.set(res.token);
@@ -79,7 +87,7 @@
         const primaryCreds = getPrimaryCredentials();
         if (primaryCreds) {
           try {
-            const primaryClient = new FreshBluClient(serverUrl);
+            const primaryClient = new FreshBluHttp(serverUrl);
             primaryClient.setCredentials(primaryCreds.uuid, primaryCreds.token);
             await primaryClient.claimDevice(res.uuid);
             toast.show('Device registered and claimed by primary', 'success');
@@ -100,7 +108,7 @@
     recovering = true;
     try {
       saveServerUrl(serverUrl);
-      const client = new FreshBluClient(serverUrl);
+      const client = new FreshBluHttp(serverUrl);
       client.setCredentials(recoverUuid, recoverToken);
 
       // Verify credentials

@@ -30,13 +30,13 @@
   <h2>View Current Permissions</h2>
   <CodeBlock lang="bash" code={`CREDS=$(echo -n "UUID:TOKEN" | base64)
 
-curl http://localhost:3000/devices/UUID \\
+curl https://api.freshblu.org/devices/UUID \\
   -H "Authorization: Basic $CREDS"`} />
   <p>The <code>meshblu.whitelists</code> block in the response shows all current permissions.</p>
 
   <h2>Add a UUID to a Whitelist</h2>
   <p>To grant another device permission to send messages to your device, add its UUID to <code>message.from</code>.</p>
-  <CodeBlock lang="bash" code={`curl -X PUT http://localhost:3000/devices/MY_UUID \\
+  <CodeBlock lang="bash" code={`curl -X PUT https://api.freshblu.org/devices/MY_UUID \\
   -H "Authorization: Basic $CREDS" \\
   -H "Content-Type: application/json" \\
   -d '{
@@ -55,7 +55,7 @@ curl http://localhost:3000/devices/UUID \\
 
   <h2>Grant Discovery Access</h2>
   <p>Let specific devices view your properties:</p>
-  <CodeBlock lang="bash" code={`curl -X PUT http://localhost:3000/devices/MY_UUID \\
+  <CodeBlock lang="bash" code={`curl -X PUT https://api.freshblu.org/devices/MY_UUID \\
   -H "Authorization: Basic $CREDS" \\
   -H "Content-Type: application/json" \\
   -d '{
@@ -73,7 +73,7 @@ curl http://localhost:3000/devices/UUID \\
 
   <h2>Grant Configure Access</h2>
   <p>Let another device update your configuration:</p>
-  <CodeBlock lang="bash" code={`curl -X PUT http://localhost:3000/devices/MY_UUID \\
+  <CodeBlock lang="bash" code={`curl -X PUT https://api.freshblu.org/devices/MY_UUID \\
   -H "Authorization: Basic $CREDS" \\
   -H "Content-Type: application/json" \\
   -d '{
@@ -91,7 +91,7 @@ curl http://localhost:3000/devices/UUID \\
 
   <h2>Use Wildcard for Public Access</h2>
   <p>Set <code>{`{"uuid": "*"}`}</code> to allow any device:</p>
-  <CodeBlock lang="bash" code={`curl -X PUT http://localhost:3000/devices/MY_UUID \\
+  <CodeBlock lang="bash" code={`curl -X PUT https://api.freshblu.org/devices/MY_UUID \\
   -H "Authorization: Basic $CREDS" \\
   -H "Content-Type: application/json" \\
   -d '{
@@ -107,7 +107,7 @@ curl http://localhost:3000/devices/UUID \\
 
   <h2>Lock Down a Device</h2>
   <p>Remove all access by setting empty arrays:</p>
-  <CodeBlock lang="bash" code={`curl -X PUT http://localhost:3000/devices/MY_UUID \\
+  <CodeBlock lang="bash" code={`curl -X PUT https://api.freshblu.org/devices/MY_UUID \\
   -H "Authorization: Basic $CREDS" \\
   -H "Content-Type: application/json" \\
   -d '{
@@ -127,7 +127,7 @@ curl http://localhost:3000/devices/UUID \\
   <CodeBlock lang="bash" code={`# Before: from: [{"uuid": "A"}, {"uuid": "B"}, {"uuid": "C"}]
 # Remove B by sending A and C only:
 
-curl -X PUT http://localhost:3000/devices/MY_UUID \\
+curl -X PUT https://api.freshblu.org/devices/MY_UUID \\
   -H "Authorization: Basic $CREDS" \\
   -H "Content-Type: application/json" \\
   -d '{

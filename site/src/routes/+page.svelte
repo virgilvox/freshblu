@@ -4,6 +4,102 @@
   import Card from '$lib/components/ui/Card.svelte';
   import Logo from '$lib/components/brand/Logo.svelte';
   import CodeBlock from '$lib/components/ui/CodeBlock.svelte';
+  import LanguageTabs from '$lib/components/ui/LanguageTabs.svelte';
+
+  const quickStartTabs = [
+    {
+      label: 'JavaScript',
+      lang: 'javascript',
+      code: `<script src="https://unpkg.com/freshblu/dist/index.global.js"><\/script>
+<script>
+  const client = new FreshBluHttp('https://api.freshblu.org');
+
+  // Register a device
+  const device = await client.register({ type: 'sensor' });
+  console.log(device.uuid, device.token);
+
+  // Send a message
+  client.setCredentials(device.uuid, device.token);
+  await client.message({ devices: ['TARGET'], payload: { temp: 22.5 } });
+
+  // Listen via WebSocket
+  const ws = new FreshBlu('https://api.freshblu.org');
+  ws.setCredentials(device.uuid, device.token);
+  ws.on('message', (e) => console.log(e.payload));
+  await ws.connect();
+<\/script>`
+    },
+    {
+      label: 'Python',
+      lang: 'python',
+      code: `from freshblu import FreshBluHttp
+
+client = FreshBluHttp("https://api.freshblu.org")
+
+# Register a device
+device = client.register({"type": "sensor"})
+client.set_credentials(device["uuid"], device["token"])
+
+# Send a message
+client.message({"devices": ["TARGET"], "payload": {"temp": 22.5}})
+
+# Listen via WebSocket
+from freshblu import FreshBlu
+ws = FreshBlu("https://api.freshblu.org")
+ws.set_credentials(device["uuid"], device["token"])
+ws.on("message", lambda e: print(e["payload"]))
+ws.connect()`
+    },
+    {
+      label: 'curl',
+      lang: 'bash',
+      code: `# Register
+curl -s -X POST https://api.freshblu.org/devices | jq .
+
+# Send a message
+CREDS=$(echo -n "$UUID:$TOKEN" | base64)
+curl -X POST https://api.freshblu.org/messages \\
+  -H "Authorization: Basic $CREDS" \\
+  -H "Content-Type: application/json" \\
+  -d '{"devices": ["TARGET"], "payload": {"temp": 22.5}}'`
+    },
+    {
+      label: 'CLI',
+      lang: 'bash',
+      code: `# Install
+cargo install freshblu-cli
+
+# Register
+freshblu register --type sensor --name "temp-01"
+
+# Send a message
+freshblu message TARGET_UUID '{"temp": 22.5}'`
+    },
+    {
+      label: 'Arduino',
+      lang: 'cpp',
+      code: `#include <WiFi.h>
+#include <FreshBlu.h>
+
+WiFiClient http, mqtt;
+FreshBlu blu(http, mqtt, "api.freshblu.org");
+
+void setup() {
+  WiFi.begin("SSID", "PASS");
+  StaticJsonDocument<256> props;
+  props["type"] = "sensor";
+  blu.begin(props);
+}
+
+void loop() {
+  blu.loop();
+  StaticJsonDocument<128> msg;
+  msg["temp"] = analogRead(A0) * 0.1;
+  blu.sendMessage("TARGET_UUID", msg);
+  delay(5000);
+}`
+    }
+  ];
 </script>
 
 <svelte:head>
@@ -81,37 +177,18 @@
     <span class="section-num">02</span>
     <span class="section-title">Quick Start</span>
   </div>
-  <div class="qs-steps">
-    <div class="qs-step">
-      <span class="qs-num">01</span>
-      <span class="qs-label">Register a device and save the credentials</span>
-      <CodeBlock lang="bash" code={`# Register a new device on the public server
-curl -s -X POST https://api.freshblu.org/devices | jq .
-
-# Response:
-# { "uuid": "d0a1f3b2-...", "token": "a8c3e9...", "meshblu": { ... } }
-
-# Save the uuid and token - the token is shown only once
-UUID="your-uuid-here"
-TOKEN="your-token-here"
-CREDS=$(echo -n "$UUID:$TOKEN" | base64)`} />
-    </div>
-    <div class="qs-step">
-      <span class="qs-num">02</span>
-      <span class="qs-label">Send a message to another device</span>
-      <CodeBlock lang="bash" code={`curl -X POST https://api.freshblu.org/messages \\
-  -H "Authorization: Basic $CREDS" \\
-  -H "Content-Type: application/json" \\
-  -d '{"devices": ["TARGET_UUID"], "payload": {"hello": "world"}}'`} />
-    </div>
-    <div class="qs-step">
-      <span class="qs-num">03</span>
-      <span class="qs-label">Listen via WebSocket</span>
-      <CodeBlock lang="javascript" code={`const ws = new WebSocket('wss://api.freshblu.org/ws');
-ws.send(JSON.stringify({event: 'identity', uuid: 'YOUR_UUID', token: 'YOUR_TOKEN'}));
-ws.onmessage = (e) => console.log(JSON.parse(e.data));`} />
-    </div>
+  <div class="install-strip">
+    <code>npm install freshblu</code>
+    <span class="install-or">or</span>
+    <code>pip install freshblu</code>
+    <span class="install-or">or</span>
+    <code>&lt;script src="https://unpkg.com/freshblu/dist/index.global.js"&gt;</code>
+    <span class="install-links">
+      <a href="/docs/reference/javascript-client" class="install-link">JS docs &rarr;</a>
+      <a href="/docs/reference/python-client" class="install-link">Python docs &rarr;</a>
+    </span>
   </div>
+  <LanguageTabs tabs={quickStartTabs} />
 </section>
 
 <!-- Stack -->
@@ -276,29 +353,39 @@ ws.onmessage = (e) => console.log(JSON.parse(e.data));`} />
     line-height: var(--leading-relaxed);
   }
 
-  .qs-steps {
+  .install-strip {
     display: flex;
-    flex-direction: column;
-    gap: 32px;
+    align-items: center;
+    gap: 12px;
+    flex-wrap: wrap;
+    margin-bottom: 24px;
+    font-family: var(--font-body);
+    font-size: var(--text-sm);
+    color: var(--ink-soft);
   }
-  .qs-step {
-    display: flex;
-    flex-direction: column;
-    gap: 8px;
+  .install-strip code {
+    background: var(--void);
+    border: 1px solid var(--border);
+    padding: 4px 10px;
+    color: var(--signal);
+    font-size: var(--text-sm);
   }
-  .qs-num {
-    font-family: var(--font-display);
+  .install-or {
+    color: var(--ink-muted);
     font-size: var(--text-xs);
-    font-weight: 700;
-    letter-spacing: 0.15em;
-    color: var(--pulse);
-  }
-  .qs-label {
-    font-family: var(--font-display);
-    font-size: var(--text-md);
-    font-weight: 600;
-    letter-spacing: 0.04em;
     text-transform: uppercase;
+    letter-spacing: 0.1em;
+  }
+  .install-links {
+    display: flex;
+    gap: 16px;
+    margin-left: auto;
+  }
+  .install-link {
+    font-family: var(--font-ui);
+    font-size: var(--text-xs);
+    letter-spacing: 0.08em;
+    color: var(--pulse);
   }
 
   .badge-row {

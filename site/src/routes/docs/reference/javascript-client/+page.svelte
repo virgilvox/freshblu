@@ -8,32 +8,45 @@
 
 <div class="doc-page">
   <h1 class="doc-title">JavaScript Client</h1>
-  <p>FreshBlu provides a TypeScript/JavaScript client for both REST and WebSocket communication. Use it in the browser or any JavaScript runtime.</p>
+  <p>FreshBlu provides a TypeScript/JavaScript SDK for both REST and WebSocket communication. Use it in the browser or any JavaScript runtime.</p>
 
-  <h2>Browser (ES Module)</h2>
-  <p>Include the client directly in your HTML:</p>
-  <CodeBlock code={`<script type="module">
-  import { FreshBluClient } from '/path/to/client.js';
+  <h2>Installation</h2>
+  <h3>npm / Bundler</h3>
+  <CodeBlock code={`npm install freshblu`} lang="bash" />
+  <CodeBlock code={`import { FreshBlu, FreshBluHttp } from 'freshblu';`} lang="javascript" />
 
-  const client = new FreshBluClient('http://localhost:3000');
+  <h3>CDN / Script Tag</h3>
+  <p>Include the SDK directly in your HTML via unpkg:</p>
+  <CodeBlock code={`<script src="https://unpkg.com/freshblu@1.0.0/dist/index.global.js"><\/script>
+<script>
+  // FreshBlu and FreshBluHttp are available as globals
+  const client = new FreshBluHttp('https://api.freshblu.org');
   const device = await client.register({ type: 'browser' });
   console.log('Registered:', device.uuid);
-</script>`} lang="javascript" />
-
-  <h2>npm / Bundler</h2>
-  <p>Import the client in your project:</p>
-  <CodeBlock code={`import { FreshBluClient } from './lib/api/client';
-import { FreshBluWs } from './lib/api/ws';`} lang="javascript" />
+<\/script>`} lang="html" />
 
   <h2>REST Client API</h2>
-  <p>The <code>FreshBluClient</code> class wraps all HTTP endpoints with typed methods.</p>
+  <p>The <code>FreshBluHttp</code> class wraps all HTTP endpoints with typed methods. Use <code>FreshBlu</code> if you also need WebSocket support (it extends <code>FreshBluHttp</code>).</p>
 
   <h3>Constructor</h3>
-  <CodeBlock code={`const client = new FreshBluClient(baseUrl?: string);
-// defaults to PUBLIC_API_URL or http://localhost:3000`} lang="javascript" />
+  <p>Pass a URL string or an options object:</p>
+  <CodeBlock code={`// URL string
+const client = new FreshBluHttp('https://api.freshblu.org');
+
+// Options object
+const client = new FreshBluHttp({
+  hostname: 'api.freshblu.org',
+  port: 443,
+  secure: true,
+  uuid: 'my-uuid',
+  token: 'my-token'
+});
+
+// Default: http://localhost:3000
+const client = new FreshBluHttp();`} lang="javascript" />
 
   <h3>Authentication</h3>
-  <CodeBlock code={`client.setCredentials(uuid: string, token: string);
+  <CodeBlock code={`client.setCredentials(uuid, token);
 const device = await client.authenticate();`} lang="javascript" />
 
   <h3>Devices</h3>
@@ -57,14 +70,14 @@ const me = await client.whoami();
 const mine = await client.myDevices();
 
 // Search devices
-const results = await client.searchDevices({ type: 'sensor' });
+const results = await client.search({ type: 'sensor' });
 
 // Claim a device
 const claimed = await client.claimDevice(uuid);`} lang="javascript" />
 
   <h3>Messages</h3>
   <CodeBlock code={`// Send to specific devices
-await client.sendMessage({
+await client.message({
   devices: ['target-uuid'],
   topic: 'temperature',
   payload: { value: 22.5 }
@@ -78,14 +91,14 @@ await client.broadcast({
 
   <h3>Subscriptions</h3>
   <CodeBlock code={`// Subscribe to events from another device
-await client.createSubscription(
-  myUuid,
-  emitterUuid,
-  'message.received'
-);
+await client.createSubscription({
+  subscriberUuid: myUuid,
+  emitterUuid: emitterUuid,
+  type: 'message.received'
+});
 
 // List subscriptions
-const subs = await client.listSubscriptions(myUuid);
+const subs = await client.subscriptions(myUuid);
 
 // Delete a subscription
 await client.deleteSubscription(myUuid, emitterUuid, 'message.received');`} lang="javascript" />
@@ -101,77 +114,85 @@ await client.revokeToken(deviceUuid, tokenToRevoke);
 const { uuid, token } = await client.resetToken(deviceUuid);`} lang="javascript" />
 
   <h2>WebSocket Client API</h2>
-  <p>The <code>FreshBluWs</code> class provides real-time event streaming.</p>
+  <p>The <code>FreshBlu</code> class extends <code>FreshBluHttp</code> with real-time WebSocket support. All HTTP methods are available plus the WebSocket API below.</p>
 
   <h3>Constructor &amp; Connection</h3>
-  <CodeBlock code={`const ws = new FreshBluWs(uuid, token, baseUrl?);
+  <CodeBlock code={`const client = new FreshBlu('https://api.freshblu.org');
+client.setCredentials(uuid, token);
 
 // Connect (sends identity, resolves on 'ready')
-await ws.connect();
+await client.connect();
 
 // Check connection status
-console.log(ws.connected); // boolean`} lang="javascript" />
+console.log(client.connected); // boolean`} lang="javascript" />
 
   <h3>Event Handling</h3>
   <CodeBlock code={`// Listen to specific events
-ws.on('message', (event) => {
+client.on('message', (event) => {
   console.log('From:', event.fromUuid);
   console.log('Payload:', event.payload);
 });
 
-ws.on('broadcast', (event) => { /* ... */ });
-ws.on('config', (event) => { /* ... */ });
-ws.on('ready', (event) => { /* ... */ });
-ws.on('notReady', (event) => { /* ... */ });
-ws.on('unregistered', (event) => { /* ... */ });
+client.on('broadcast', (event) => { /* ... */ });
+client.on('config', (event) => { /* ... */ });
+client.on('ready', (event) => { /* ... */ });
+client.on('notReady', (event) => { /* ... */ });
+client.on('unregistered', (event) => { /* ... */ });
 
 // Listen to ALL events
-ws.on('*', (event) => {
+client.on('*', (event) => {
   console.log(event.event, event);
 });
 
 // Remove a listener
-ws.off('message', handler);`} lang="javascript" />
+client.off('message', handler);`} lang="javascript" />
 
   <h3>Sending Messages</h3>
-  <CodeBlock code={`// Convenience method
-ws.sendMessage(['target-uuid'], { temp: 22.5 }, 'readings');
+  <CodeBlock code={`// Convenience method (positional args)
+client.sendMessage(['target-uuid'], { temp: 22.5 }, 'readings');
+
+// Object form
+client.sendMessage({ devices: ['target-uuid'], payload: { temp: 22.5 }, topic: 'readings' });
 
 // Raw send (any event)
-ws.send({ event: 'message', devices: ['*'], payload: {} });`} lang="javascript" />
+client.send({ event: 'message', devices: ['*'], payload: {} });`} lang="javascript" />
 
   <h3>Cleanup</h3>
-  <CodeBlock code="ws.close();" lang="javascript" />
+  <CodeBlock code={`client.close();
+// or
+client.disconnect();`} lang="javascript" />
 
   <h2>Complete Example</h2>
-  <CodeBlock code={`import { FreshBluClient } from './lib/api/client';
-import { FreshBluWs } from './lib/api/ws';
+  <CodeBlock code={`import { FreshBlu, FreshBluHttp } from 'freshblu';
 
-const SERVER = 'http://localhost:3000';
+const SERVER = 'https://api.freshblu.org';
 
-// Register two devices
-const client = new FreshBluClient(SERVER);
-const deviceA = await client.register({ type: 'sender' });
-const deviceB = await client.register({ type: 'receiver' });
+// Register two devices (no auth needed for registration)
+const http = new FreshBluHttp(SERVER);
+const deviceA = await http.register({ type: 'sender' });
+const deviceB = await http.register({ type: 'receiver' });
 
 // Device B subscribes to messages from Device A
-const clientB = new FreshBluClient(SERVER);
+const clientB = new FreshBluHttp(SERVER);
 clientB.setCredentials(deviceB.uuid, deviceB.token);
-await clientB.createSubscription(
-  deviceB.uuid, deviceA.uuid, 'message.received'
-);
+await clientB.createSubscription({
+  subscriberUuid: deviceB.uuid,
+  emitterUuid: deviceA.uuid,
+  type: 'message.received'
+});
 
 // Device B connects via WebSocket
-const wsB = new FreshBluWs(deviceB.uuid, deviceB.token, SERVER);
+const wsB = new FreshBlu(SERVER);
+wsB.setCredentials(deviceB.uuid, deviceB.token);
 wsB.on('message', (event) => {
   console.log('Received:', event.payload);
 });
 await wsB.connect();
 
 // Device A sends a message to Device B
-const clientA = new FreshBluClient(SERVER);
+const clientA = new FreshBluHttp(SERVER);
 clientA.setCredentials(deviceA.uuid, deviceA.token);
-await clientA.sendMessage({
+await clientA.message({
   devices: [deviceB.uuid],
   payload: { hello: 'world' }
 });`} lang="javascript" />
