@@ -13,9 +13,7 @@ export type {
   Forwarders,
 } from 'freshblu';
 
-import { PUBLIC_API_URL } from '$env/static/public';
-
-const defaultUrl = PUBLIC_API_URL || 'https://api.freshblu.org';
+const defaultUrl = 'https://api.freshblu.org';
 
 export const api = new FreshBluHttp(defaultUrl);
 
