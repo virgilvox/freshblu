@@ -136,6 +136,37 @@ sendBtn.addEventListener('click', () => {
   payloadInput.value = '';
 });`} />
   <p>The full dashboard is two files. Open the HTML in a browser, fill in your credentials in <code>dashboard.js</code>, and you have a live view of your device mesh.</p>
+
+  <h2>Alternative: Using the SDK</h2>
+  <p>The same dashboard can be built with much less code using the <code>freshblu</code> package. Install it via npm or include via CDN:</p>
+  <CodeBlock lang="html" code={`<script src="https://unpkg.com/freshblu@1.0.0/dist/index.global.js"><\/script>
+<script>
+  // FreshBlu is available as a global after the script tag
+  const client = new FreshBlu('ws://localhost:3000');
+  client.setCredentials('YOUR_UUID', 'YOUR_TOKEN');
+
+  client.on('message', (event) => {
+    const li = document.createElement('li');
+    li.textContent = new Date().toLocaleTimeString()
+      + ' [' + event.fromUuid + '] '
+      + JSON.stringify(event.payload);
+    document.getElementById('messages').prepend(li);
+  });
+
+  client.connect().then(() => {
+    document.getElementById('status').textContent = 'ready';
+  });
+
+  document.getElementById('send').addEventListener('click', () => {
+    const target = document.getElementById('target').value.trim();
+    if (!target || !client.connected) return;
+    let payload;
+    try { payload = JSON.parse(document.getElementById('payload').value); }
+    catch { payload = { text: document.getElementById('payload').value }; }
+    client.sendMessage([target], payload);
+  });
+<\/script>`} />
+  <p>No separate JS file needed. The SDK handles authentication, reconnection, and JSON framing for you.</p>
 </div>
 
 <style>

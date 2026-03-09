@@ -4,32 +4,46 @@
   import Badge from '$lib/components/ui/Badge.svelte';
   import Toast from '$lib/components/ui/Toast.svelte';
   import DeviceCard from '$lib/components/playground/DeviceCard.svelte';
-  import { FreshBluClient, api, syncApiBaseUrl, getServerUrl } from '$lib/api/client';
+  import RegisterDeviceModal from '$lib/components/playground/RegisterDeviceModal.svelte';
+  import { FreshBluHttp, api, syncApiBaseUrl, getServerUrl } from '$lib/api/client';
   import { uuid, token } from '$lib/stores/auth';
   import { vaultDevices, addToVault, removeFromVault, setActiveDevice } from '$lib/stores/vault';
   import { goto } from '$app/navigation';
-  import type { Device } from '$lib/api/types';
+  import type { Device } from '$lib/api/client';
   import type { VaultDevice } from '$lib/stores/vault';
 
   let loading = $state(true);
   let vault: VaultDevice[] = $state([]);
   let liveStatus: Map<string, { online: boolean; device?: Device }> = $state(new Map());
   let toast: Toast;
+  let showMyDevices = $state(false);
+  let myDevicesList: Device[] = $state([]);
+  let loadingMyDevices = $state(false);
+  let showRegisterModal = $state(false);
 
+  // Active device credentials (reactive)
+  let activeUuid = $state('');
+  let activeToken = $state('');
+  const unsubUuid = uuid.subscribe(v => activeUuid = v);
+  const unsubToken = token.subscribe(v => activeToken = v);
   const unsubVault = vaultDevices.subscribe(v => vault = v);
 
   onDestroy(() => {
     unsubVault();
+    unsubUuid();
+    unsubToken();
   });
 
+  /** Find label for the active device */
+  function activeDeviceLabel(): string | undefined {
+    const vd = vault.find(d => d.uuid === activeUuid);
+    return vd?.name || vd?.label || vd?.type;
+  }
+
   onMount(async () => {
-    // Fetch live status for each vault device
-    let u = '', t = '';
-    uuid.subscribe(v => u = v)();
-    token.subscribe(v => t = v)();
-    if (u && t) {
+    if (activeUuid && activeToken) {
       syncApiBaseUrl();
-      api.setCredentials(u, t);
+      api.setCredentials(activeUuid, activeToken);
     }
     await refreshStatus();
     loading = false;
@@ -43,7 +57,7 @@
         continue;
       }
       try {
-        const client = new FreshBluClient(getServerUrl());
+        const client = new FreshBluHttp(getServerUrl());
         client.setCredentials(vd.uuid, vd.token);
         const device = await client.getDevice(vd.uuid);
         statuses.set(vd.uuid, { online: device.online, device });
@@ -66,32 +80,57 @@
     };
   }
 
-  async function registerAndVault() {
+  async function handleRegister(properties: Record<string, unknown>, claimOwnership: boolean) {
     const serverUrl = getServerUrl();
-    const client = new FreshBluClient(serverUrl);
+    const client = new FreshBluHttp(serverUrl);
     try {
-      const res = await client.register();
-      await addToVault({ uuid: res.uuid, token: res.token, addedAt: Date.now() });
-      setActiveDevice(res.uuid);
-      uuid.set(res.uuid);
-      token.set(res.token);
-      syncApiBaseUrl();
-      api.setCredentials(res.uuid, res.token);
-      liveStatus.set(res.uuid, { online: res.online, device: { uuid: res.uuid, online: res.online, meshblu: res.meshblu } });
+      const res = await client.register(Object.keys(properties).length > 0 ? properties : undefined);
+
+      // Store in vault with name/type for VaultSwitcher display
+      await addToVault({
+        uuid: res.uuid,
+        token: res.token,
+        name: properties.name as string | undefined,
+        type: properties.type as string | undefined,
+        addedAt: Date.now(),
+      });
+
+      // If this is the first device, make it the primary
+      if (vault.length === 0 || !activeUuid) {
+        setActiveDevice(res.uuid);
+        uuid.set(res.uuid);
+        token.set(res.token);
+        syncApiBaseUrl();
+        api.setCredentials(res.uuid, res.token);
+      }
+
+      // Claim ownership: the active device claims the new device
+      if (claimOwnership && activeUuid && activeUuid !== res.uuid) {
+        try {
+          await api.claimDevice(res.uuid);
+        } catch {
+          // Claiming may fail if permissions aren't set up -- not fatal
+        }
+      }
+
+      liveStatus.set(res.uuid, { online: res.online, device: { uuid: res.uuid, online: res.online, meshblu: res.meshblu, ...properties } as Device });
       liveStatus = new Map(liveStatus);
-      toast.show('Device registered and added to vault', 'success');
+      showRegisterModal = false;
+      toast.show(`Registered ${properties.name || res.uuid.substring(0, 8)}`, 'success');
     } catch (e) {
       toast.show((e as Error).message, 'error');
     }
   }
 
   async function handleRemoveFromVault(deviceUuid: string) {
+    if (!confirm('Remove this device from vault? You will lose the stored token.')) return;
     await removeFromVault(deviceUuid);
     liveStatus.delete(deviceUuid);
     liveStatus = new Map(liveStatus);
   }
 
   async function handleDelete(deviceUuid: string) {
+    if (!confirm('Delete this device permanently? This cannot be undone.')) return;
     try {
       await api.unregister(deviceUuid);
       await removeFromVault(deviceUuid);
@@ -100,6 +139,20 @@
       toast.show('Device deleted', 'success');
     } catch (e) {
       toast.show((e as Error).message, 'error');
+    }
+  }
+
+  async function toggleMyDevices() {
+    showMyDevices = !showMyDevices;
+    if (showMyDevices && myDevicesList.length === 0) {
+      loadingMyDevices = true;
+      try {
+        myDevicesList = await api.myDevices();
+      } catch (e) {
+        toast.show((e as Error).message, 'error');
+        showMyDevices = false;
+      }
+      loadingMyDevices = false;
     }
   }
 
@@ -121,23 +174,65 @@
 <div class="devices-page">
   <div class="devices-header">
     <h1 class="page-title">Devices</h1>
-    <Button size="sm" onclick={registerAndVault}>
-      <i class="fa-solid fa-plus"></i>
-      Register New Device
-    </Button>
+    <div class="header-actions">
+      <Button size="sm" variant={showMyDevices ? 'pulse' : 'ghost'} onclick={toggleMyDevices}>
+        <i class="fa-solid fa-user"></i>
+        My Devices
+      </Button>
+      <Button size="sm" onclick={() => showRegisterModal = true}>
+        <i class="fa-solid fa-plus"></i>
+        Register New Device
+      </Button>
+    </div>
   </div>
+
+  {#if showMyDevices}
+    <div class="my-devices-section">
+      <h2 class="section-title">Server-Owned Devices</h2>
+      {#if loadingMyDevices}
+        <p class="loading-text">Loading owned devices...</p>
+      {:else if myDevicesList.length === 0}
+        <p class="empty-text">No owned devices found. Claim devices or register with ownership enabled.</p>
+      {:else}
+        <div class="device-grid">
+          {#each myDevicesList as device (device.uuid)}
+            <div class="device-card-wrap">
+              <div class="card-badges">
+                <Badge variant={device.online ? 'online' : 'muted'}>{device.online ? 'Online' : 'Offline'}</Badge>
+                {#if vault.some(v => v.uuid === device.uuid)}
+                  <Badge variant="pulse"><i class="fa-solid fa-lock"></i> Vault</Badge>
+                {/if}
+              </div>
+              <DeviceCard {device} onclick={() => goto(`/playground/devices/${device.uuid}`)} />
+            </div>
+          {/each}
+        </div>
+      {/if}
+    </div>
+  {/if}
 
   {#if loading}
     <p class="loading-text">Loading devices...</p>
   {:else if vault.length === 0}
-    <p class="empty-text">No devices in vault. Register one to get started.</p>
+    <div class="empty-state">
+      <p class="empty-text">No devices in vault. Register one to get started.</p>
+      <Button size="sm" onclick={() => showRegisterModal = true}>
+        <i class="fa-solid fa-plus"></i>
+        Register Your First Device
+      </Button>
+    </div>
   {:else}
     <div class="device-grid">
       {#each vault as vd (vd.uuid)}
         {@const device = toDevice(vd)}
+        {@const isPrimary = vd.uuid === activeUuid}
         <div class="device-card-wrap">
           <div class="card-badges">
-            <Badge variant="pulse"><i class="fa-solid fa-lock"></i> Vault</Badge>
+            {#if isPrimary}
+              <Badge variant="pulse"><i class="fa-solid fa-star"></i> Primary</Badge>
+            {:else}
+              <Badge variant="pulse"><i class="fa-solid fa-lock"></i> Vault</Badge>
+            {/if}
             {#if !vd.token}
               <Badge variant="warn">No Token</Badge>
             {:else}
@@ -164,6 +259,13 @@
     </div>
   {/if}
 </div>
+
+<RegisterDeviceModal
+  bind:open={showRegisterModal}
+  ownerUuid={activeUuid || undefined}
+  ownerLabel={activeDeviceLabel()}
+  onregister={handleRegister}
+/>
 
 <Toast bind:this={toast} />
 
@@ -219,6 +321,30 @@
   .action-delete:hover {
     color: var(--fault);
     border-color: var(--fault);
+  }
+  .header-actions {
+    display: flex;
+    gap: 8px;
+    align-items: center;
+  }
+  .my-devices-section {
+    margin-bottom: 32px;
+    padding-bottom: 24px;
+    border-bottom: 1px solid var(--border);
+  }
+  .section-title {
+    font-family: var(--font-display);
+    font-size: var(--text-lg);
+    font-weight: 700;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+    margin-bottom: 16px;
+  }
+  .empty-state {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 16px;
   }
   .loading-text, .empty-text {
     font-family: var(--font-ui);

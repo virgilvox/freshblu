@@ -1,6 +1,6 @@
 <script lang="ts">
   import StatusDot from '../ui/StatusDot.svelte';
-  import type { Device } from '$lib/api/types';
+  import type { Device } from '$lib/api/client';
 
   interface Props {
     device: Device;

@@ -67,6 +67,37 @@ ws.onmessage = (e) => {
 ws.onerror = (err) => console.error('ws error', err);
 ws.onclose = () => console.log('disconnected');`} />
   <p>The connection stays open until you close it or the server shuts down. Messages arrive as they are sent. No polling required.</p>
+
+  <h2>5. Using the JS SDK</h2>
+  <p>The same flow above can be done with fewer lines using the <code>freshblu</code> npm package:</p>
+  <CodeBlock lang="bash" code={`npm install freshblu`} />
+  <CodeBlock lang="javascript" code={`import { FreshBlu, FreshBluHttp } from 'freshblu';
+
+const SERVER = 'https://api.freshblu.org';
+
+// 1. Register
+const http = new FreshBluHttp(SERVER);
+const device = await http.register({ type: 'sensor' });
+console.log('UUID:', device.uuid, 'Token:', device.token);
+
+// 2. Authenticate
+http.setCredentials(device.uuid, device.token);
+const me = await http.whoami();
+console.log('Online:', me.online);
+
+// 3. Send a message
+await http.message({
+  devices: ['TARGET_UUID'],
+  payload: { temp: 22.5 }
+});
+
+// 4. Listen via WebSocket
+const ws = new FreshBlu(SERVER);
+ws.setCredentials(device.uuid, device.token);
+ws.on('message', (event) => {
+  console.log('Received:', event.payload);
+});
+await ws.connect();`} />
 </div>
 
 <style>

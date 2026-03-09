@@ -3,4 +3,6 @@ target/
 *.swo
 .env
 .DS_Store
+node_modules/
 crates/freshblu-wasm/pkg
+sdks/js/dist/

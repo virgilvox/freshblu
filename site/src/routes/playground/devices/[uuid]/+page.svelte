@@ -1,6 +1,7 @@
 <script lang="ts">
   import { onMount, onDestroy } from 'svelte';
   import { page } from '$app/state';
+  import { goto } from '$app/navigation';
   import Tabs from '$lib/components/ui/Tabs.svelte';
   import CredentialsPanel from '$lib/components/playground/CredentialsPanel.svelte';
   import PropertyEditor from '$lib/components/playground/PropertyEditor.svelte';
@@ -11,27 +12,40 @@
   import { api, syncApiBaseUrl } from '$lib/api/client';
   import { uuid as authUuid, token as authToken } from '$lib/stores/auth';
   import Badge from '$lib/components/ui/Badge.svelte';
+  import Button from '$lib/components/ui/Button.svelte';
   import { vaultDevices } from '$lib/stores/vault';
-  import type { Device, Whitelists, Forwarders } from '$lib/api/types';
+  import type { Device, Whitelists, Forwarders } from '$lib/api/client';
   import type { VaultDevice } from '$lib/stores/vault';
 
   let vault: VaultDevice[] = $state([]);
+  let currentAuthUuid = $state('');
   const unsubVault = vaultDevices.subscribe(v => vault = v);
+  const unsubAuth = authUuid.subscribe(v => currentAuthUuid = v);
 
-  onDestroy(unsubVault);
+  onDestroy(() => {
+    unsubVault();
+    unsubAuth();
+  });
 
   function isInVault(deviceUuid: string): boolean {
     return vault.some(d => d.uuid === deviceUuid);
+  }
+
+  function getVaultToken(deviceUuid: string): string | undefined {
+    return vault.find(d => d.uuid === deviceUuid)?.token;
   }
 
   const tabs = ['Properties', 'Credentials', 'Permissions', 'Webhooks'];
   let activeTab = $state(tabs[0]);
   let device: Device | null = $state(null);
   let loading = $state(true);
+  let errorMessage = $state('');
 
   const deviceUuid = page.params.uuid;
 
-  onMount(async () => {
+  async function loadDevice() {
+    loading = true;
+    errorMessage = '';
     let u = '', t = '';
     authUuid.subscribe(v => u = v)();
     authToken.subscribe(v => t = v)();
@@ -39,11 +53,21 @@
     api.setCredentials(u, t);
     try {
       device = await api.getDevice(deviceUuid);
-    } catch {
+    } catch (e) {
       device = null;
+      const msg = (e as Error).message || 'Unknown error';
+      if (msg.includes('404') || msg.toLowerCase().includes('not found')) {
+        errorMessage = 'Device not found. It may have been deleted.';
+      } else if (msg.includes('403') || msg.toLowerCase().includes('permission') || msg.toLowerCase().includes('forbidden')) {
+        errorMessage = 'Permission denied. You do not have access to view this device.';
+      } else {
+        errorMessage = msg;
+      }
     }
     loading = false;
-  });
+  }
+
+  onMount(loadDevice);
 
   async function saveProperties(props: Record<string, unknown>) {
     device = await api.updateDevice(deviceUuid, props);
@@ -69,7 +93,19 @@
 {#if loading}
   <p class="loading-text">Loading device...</p>
 {:else if !device}
-  <p class="error-text">Device not found.</p>
+  <div class="error-state">
+    <p class="error-text">{errorMessage || 'Device not found.'}</p>
+    {#if isInVault(deviceUuid)}
+      {@const vt = getVaultToken(deviceUuid)}
+      {#if vt}
+        <p class="error-hint">This device is in your vault. Try re-authenticating with its token.</p>
+      {/if}
+    {/if}
+    <div class="error-actions">
+      <Button size="sm" variant="ghost" onclick={loadDevice}>Retry</Button>
+      <Button size="sm" variant="muted" onclick={() => goto('/playground/devices')}>Back to Devices</Button>
+    </div>
+  </div>
 {:else}
   <div class="device-detail">
     <div class="detail-header">
@@ -80,9 +116,20 @@
           <Badge variant="pulse"><i class="fa-solid fa-lock"></i> In Vault</Badge>
         {/if}
       </div>
-      {#if device.type}
-        <span class="detail-type">{device.type}</span>
-      {/if}
+      <div class="detail-meta">
+        {#if device.type}
+          <span class="detail-type">{device.type}</span>
+        {/if}
+        {#if device.name}
+          <span class="detail-name">{device.name}</span>
+        {/if}
+        {#if device.meshblu?.owner}
+          {@const ownerUuid = device.meshblu.owner}
+          <Badge variant={ownerUuid === currentAuthUuid ? 'online' : 'muted'}>
+            {ownerUuid === currentAuthUuid ? 'Owned by you' : `Owner: ${ownerUuid.substring(0, 8)}...`}
+          </Badge>
+        {/if}
+      </div>
     </div>
 
     <div class="icon-section">
@@ -99,7 +146,8 @@
           onSave={saveProperties}
         />
       {:else if activeTab === 'Credentials'}
-        <CredentialsPanel uuid={device.uuid} />
+        {@const vaultToken = vault.find(d => d.uuid === device!.uuid)?.token}
+        <CredentialsPanel uuid={device.uuid} token={vaultToken} />
       {:else if activeTab === 'Permissions'}
         <WhitelistEditor
           whitelists={device.meshblu.whitelists}
@@ -130,6 +178,12 @@
     gap: 10px;
     margin-bottom: 4px;
   }
+  .detail-meta {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-top: 4px;
+  }
   .detail-uuid {
     font-family: var(--font-ui);
     font-size: var(--text-sm);
@@ -144,6 +198,12 @@
     text-transform: uppercase;
     color: var(--ink-muted);
   }
+  .detail-name {
+    font-family: var(--font-display);
+    font-size: var(--text-sm);
+    font-weight: 600;
+    color: var(--ink-soft);
+  }
   .icon-section {
     margin-bottom: 24px;
   }
@@ -156,9 +216,28 @@
     display: block;
     margin-bottom: 8px;
   }
-  .loading-text, .error-text {
+  .loading-text {
     font-family: var(--font-ui);
     font-size: var(--text-sm);
     color: var(--ink-muted);
+  }
+  .error-state {
+    max-width: 500px;
+  }
+  .error-text {
+    font-family: var(--font-ui);
+    font-size: var(--text-sm);
+    color: var(--fault);
+    margin-bottom: 8px;
+  }
+  .error-hint {
+    font-family: var(--font-ui);
+    font-size: var(--text-xs);
+    color: var(--ink-muted);
+    margin-bottom: 12px;
+  }
+  .error-actions {
+    display: flex;
+    gap: 8px;
   }
 </style>

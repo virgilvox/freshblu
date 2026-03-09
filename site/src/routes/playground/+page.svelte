@@ -3,7 +3,7 @@
   import Button from '$lib/components/ui/Button.svelte';
   import Badge from '$lib/components/ui/Badge.svelte';
   import Toast from '$lib/components/ui/Toast.svelte';
-  import { FreshBluClient, api, syncApiBaseUrl, getServerUrl, saveServerUrl } from '$lib/api/client';
+  import { FreshBluHttp, api, syncApiBaseUrl, getServerUrl, saveServerUrl } from '$lib/api/client';
   import { addToVault, setActiveDevice, vaultDevices } from '$lib/stores/vault';
   import { uuid as authUuid, token as authToken } from '$lib/stores/auth';
   import type { VaultDevice } from '$lib/stores/vault';
@@ -31,7 +31,7 @@
     pingStatus = '';
     saveServerUrl(serverUrl);
     try {
-      const client = new FreshBluClient(serverUrl);
+      const client = new FreshBluHttp(serverUrl);
       const res = await client.status();
       pingStatus = res.meshblu ? 'online' : 'offline';
     } catch {
@@ -45,18 +45,40 @@
     lastRegistered = null;
     try {
       saveServerUrl(serverUrl);
-      const client = new FreshBluClient(serverUrl);
+      const client = new FreshBluHttp(serverUrl);
       const params: Record<string, unknown> = {};
       if (regType) params.type = regType;
       if (regName) params.name = regName;
       const res = await client.register(Object.keys(params).length > 0 ? params : undefined);
       lastRegistered = { uuid: res.uuid, token: res.token };
-      await addToVault({ uuid: res.uuid, token: res.token, addedAt: Date.now() });
-      setActiveDevice(res.uuid);
-      authUuid.set(res.uuid);
-      authToken.set(res.token);
-      syncApiBaseUrl();
-      api.setCredentials(res.uuid, res.token);
+
+      // Get current active device before we potentially change it
+      let currentUuid = '';
+      authUuid.subscribe(v => currentUuid = v)();
+
+      await addToVault({
+        uuid: res.uuid,
+        token: res.token,
+        name: regName || undefined,
+        type: regType || undefined,
+        addedAt: Date.now(),
+      });
+
+      // If this is the first device, make it primary
+      if (!currentUuid || vault.length === 0) {
+        setActiveDevice(res.uuid);
+        authUuid.set(res.uuid);
+        authToken.set(res.token);
+        syncApiBaseUrl();
+        api.setCredentials(res.uuid, res.token);
+      } else {
+        // Claim ownership with current active device
+        try {
+          await api.claimDevice(res.uuid);
+        } catch {
+          // Not fatal if claiming fails
+        }
+      }
       toast.show('Device registered and added to vault', 'success');
     } catch (e) {
       toast.show((e as Error).message, 'error');

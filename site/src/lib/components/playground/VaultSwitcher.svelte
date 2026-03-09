@@ -32,6 +32,7 @@
   }
 
   async function handleClearAll() {
+    if (!confirm('Remove all devices from vault?')) return;
     await clearVault();
     open = false;
   }
@@ -45,7 +46,8 @@
   <button class="vault-trigger" onclick={() => (open = !open)}>
     <i class="fa-solid fa-lock"></i>
     {#if active && devices.length > 0}
-      <span class="vault-active">{truncate(active)}</span>
+      {@const activeDevice = devices.find(d => d.uuid === active)}
+      <span class="vault-active">{activeDevice?.name || activeDevice?.label || activeDevice?.type || truncate(active)}</span>
     {:else}
       <span class="vault-empty">No device</span>
     {/if}
@@ -75,10 +77,12 @@
               onkeydown={(e) => { if (e.key === 'Enter') switchDevice(device); }}
             >
               <span class="vault-dot" class:active={device.uuid === active}></span>
-              <span class="vault-uuid">{truncate(device.uuid)}</span>
-              {#if device.label}
-                <span class="vault-label">{device.label}</span>
-              {/if}
+              <span class="vault-id">
+                <span class="vault-name">{device.label || device.type || truncate(device.uuid)}</span>
+                {#if device.label || device.type}
+                  <span class="vault-uuid-sub">{truncate(device.uuid)}</span>
+                {/if}
+              </span>
               <button class="vault-remove" onclick={(e) => remove(e, device.uuid)} title="Remove">
                 <i class="fa-solid fa-xmark"></i>
               </button>
@@ -196,13 +200,24 @@
     background: var(--signal);
     animation: blink 2.4s ease-in-out infinite;
   }
-  .vault-uuid {
+  .vault-id {
+    display: flex;
+    flex-direction: column;
+    gap: 1px;
+    min-width: 0;
+  }
+  .vault-name {
     font-family: var(--font-body);
     color: var(--pulse);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
   }
-  .vault-label {
-    color: var(--ink-muted);
-    margin-left: auto;
+  .vault-uuid-sub {
+    font-family: var(--font-body);
+    font-size: 9px;
+    color: var(--ink-ghost);
+    letter-spacing: 0.05em;
   }
   .vault-remove {
     background: none;
