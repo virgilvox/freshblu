@@ -30,6 +30,26 @@
 <\/script>`
     },
     {
+      label: 'Node.js',
+      lang: 'javascript',
+      code: `import { FreshBlu, FreshBluHttp } from 'freshblu';
+
+const client = new FreshBluHttp('https://api.freshblu.org');
+
+// Register a device
+const device = await client.register({ type: 'sensor' });
+client.setCredentials(device.uuid, device.token);
+
+// Send a message
+await client.message({ devices: ['TARGET'], payload: { temp: 22.5 } });
+
+// Listen via WebSocket
+const ws = new FreshBlu('https://api.freshblu.org');
+ws.setCredentials(device.uuid, device.token);
+ws.on('message', (e) => console.log(e.payload));
+await ws.connect();`
+    },
+    {
       label: 'Python',
       lang: 'python',
       code: `from freshblu import FreshBluHttp
@@ -51,6 +71,25 @@ ws.on("message", lambda e: print(e["payload"]))
 ws.connect()`
     },
     {
+      label: 'Rust',
+      lang: 'rust',
+      code: `use freshblu_client::FreshBluClient;
+
+#[tokio::main]
+async fn main() -> Result<(), freshblu_client::Error> {
+    let mut client = FreshBluClient::new("https://api.freshblu.org");
+
+    // Register a device
+    let device = client.register(serde_json::json!({"type": "sensor"})).await?;
+    client.set_credentials(device.uuid, device.token.clone());
+
+    // Send a message
+    client.message(&["TARGET"], serde_json::json!({"temp": 22.5})).await?;
+
+    Ok(())
+}`
+    },
+    {
       label: 'curl',
       lang: 'bash',
       code: `# Register
@@ -66,14 +105,20 @@ curl -X POST https://api.freshblu.org/messages \\
     {
       label: 'CLI',
       lang: 'bash',
-      code: `# Install
+      code: `# Install via npm
+npm install -g freshblu-cli
+
+# Or install via cargo
 cargo install freshblu-cli
 
 # Register
 freshblu register --type sensor --name "temp-01"
 
 # Send a message
-freshblu message TARGET_UUID '{"temp": 22.5}'`
+freshblu message -d '{"devices":["TARGET"],"payload":{"temp": 22.5}}'
+
+# Start a local server
+freshblu server --port 3000`
     },
     {
       label: 'Arduino',
@@ -182,10 +227,11 @@ void loop() {
     <span class="install-or">or</span>
     <code>pip install freshblu</code>
     <span class="install-or">or</span>
-    <code>&lt;script src="https://unpkg.com/freshblu/dist/index.global.js"&gt;</code>
+    <code>cargo add freshblu-client</code>
     <span class="install-links">
       <a href="/docs/reference/javascript-client" class="install-link">JS docs &rarr;</a>
       <a href="/docs/reference/python-client" class="install-link">Python docs &rarr;</a>
+      <a href="/docs/reference/rust-client" class="install-link">Rust docs &rarr;</a>
     </span>
   </div>
   <LanguageTabs tabs={quickStartTabs} />

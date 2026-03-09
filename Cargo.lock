@@ -1200,6 +1200,23 @@ dependencies = [
 ]
 
 [[package]]
+name = "freshblu-client"
+version = "1.0.0"
+dependencies = [
+ "base64 0.21.7",
+ "freshblu-core",
+ "futures",
+ "reqwest 0.12.28",
+ "serde",
+ "serde_json",
+ "thiserror 1.0.69",
+ "tokio",
+ "tokio-tungstenite 0.21.0",
+ "url",
+ "uuid",
+]
+
+[[package]]
 name = "freshblu-core"
 version = "1.0.0"
 dependencies = [

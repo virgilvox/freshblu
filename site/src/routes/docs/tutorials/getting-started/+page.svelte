@@ -128,7 +128,43 @@ ws = FreshBlu(SERVER)
 ws.set_credentials(device["uuid"], device["token"])
 ws.on("message", lambda event: print("Received:", event["payload"]))
 ws.connect()`} />
-  <p>See the full <a href="/docs/reference/javascript-client">JS SDK reference</a> and <a href="/docs/reference/python-client">Python SDK reference</a> for all available methods.</p>
+  <h3>Rust</h3>
+  <CodeBlock lang="bash" code={`cargo add freshblu-client`} />
+  <CodeBlock lang="rust" code={`use freshblu_client::FreshBluClient;
+
+#[tokio::main]
+async fn main() -> Result<(), freshblu_client::Error> {
+    let mut client = FreshBluClient::new("https://api.freshblu.org");
+
+    // 1. Register
+    let device = client.register(serde_json::json!({"type": "sensor"})).await?;
+    client.set_credentials(device.uuid, device.token.clone());
+
+    // 2. Check device
+    let me = client.whoami().await?;
+    println!("Online: {}", me.online);
+
+    // 3. Send a message
+    client.message(&["TARGET_UUID"], serde_json::json!({"temp": 22.5})).await?;
+
+    Ok(())
+}`} />
+
+  <h3>CLI</h3>
+  <CodeBlock lang="bash" code={`# Install via npm or cargo
+npm install -g freshblu-cli
+# or: cargo install freshblu-cli
+
+# Register a device
+freshblu register --type sensor --name "temp-01"
+
+# Send a message
+freshblu message -d '{"devices":["TARGET"],"payload":{"temp":22.5}}'
+
+# Start your own server
+freshblu server --port 3000`} />
+
+  <p>See the full <a href="/docs/reference/javascript-client">JS SDK reference</a>, <a href="/docs/reference/python-client">Python SDK reference</a>, <a href="/docs/reference/rust-client">Rust SDK reference</a>, and <a href="/docs/reference/cli">CLI reference</a> for all available methods.</p>
 </div>
 
 <style>

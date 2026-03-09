@@ -6,6 +6,7 @@ members = [
     "crates/freshblu-server",
     "crates/freshblu-router",
     "crates/freshblu-cli",
+    "crates/freshblu-client",
 ]
 exclude = ["crates/freshblu-wasm"]
 resolver = "2"

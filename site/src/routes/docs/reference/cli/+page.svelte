@@ -11,6 +11,9 @@
   <p>The <code>freshblu-cli</code> tool provides a command-line interface for interacting with FreshBlu servers. It is wire-compatible with <code>meshblu-util</code>.</p>
 
   <h2>Installation</h2>
+  <h3>Via npm</h3>
+  <CodeBlock code="npm install -g freshblu-cli" lang="bash" />
+  <h3>Via cargo</h3>
   <CodeBlock code="cargo install freshblu-cli" lang="bash" />
 
   <h2>Global Flags</h2>
@@ -19,11 +22,11 @@
       <tr><th>Flag</th><th>Env</th><th>Description</th></tr>
     </thead>
     <tbody>
-      <tr><td><code>--server &lt;URL&gt;</code></td><td><code>MESHBLU_SERVER</code></td><td>Server URL (default: <code>http://localhost:3000</code>)</td></tr>
-      <tr><td><code>--uuid &lt;UUID&gt;</code></td><td><code>MESHBLU_UUID</code></td><td>Device UUID for authentication</td></tr>
-      <tr><td><code>--token &lt;TOKEN&gt;</code></td><td><code>MESHBLU_TOKEN</code></td><td>Device token for authentication</td></tr>
-      <tr><td><code>--config &lt;PATH&gt;</code></td><td></td><td>Config file path (default: <code>meshblu.json</code>)</td></tr>
-      <tr><td><code>--format &lt;FMT&gt;</code></td><td></td><td>Output format: <code>json</code> (default) or <code>table</code></td></tr>
+      <tr><td><code>-S, --server &lt;URL&gt;</code></td><td><code>FRESHBLU_SERVER</code></td><td>Server URL (default: <code>http://localhost:3000</code>)</td></tr>
+      <tr><td><code>-U, --uuid &lt;UUID&gt;</code></td><td><code>FRESHBLU_UUID</code></td><td>Device UUID for authentication</td></tr>
+      <tr><td><code>-T, --token &lt;TOKEN&gt;</code></td><td><code>FRESHBLU_TOKEN</code></td><td>Device token for authentication</td></tr>
+      <tr><td><code>-c, --config &lt;PATH&gt;</code></td><td></td><td>Config file path (default: <code>freshblu.json</code>)</td></tr>
+      <tr><td><code>-f, --format &lt;FMT&gt;</code></td><td></td><td>Output format: <code>json</code>, <code>pretty</code> (default), or <code>plain</code></td></tr>
     </tbody>
   </table>
 
@@ -71,8 +74,29 @@ freshblu register --type sensor --name "temp-01"`} lang="bash" />
   <CodeBlock code={`freshblu status
 # {"meshblu":true,"sky":"default"}`} lang="bash" />
 
+  <h3><code>server</code></h3>
+  <p>Start a local FreshBlu server. This embeds the full server runtime — HTTP, WebSocket, and device mesh — in a single process with SQLite storage.</p>
+  <CodeBlock code={`# Start on default port 3000 with SQLite
+freshblu server
+
+# Custom port and database
+freshblu server --port 8080 --db sqlite:mydata.db`} lang="bash" />
+  <table class="doc-table">
+    <thead>
+      <tr><th>Flag</th><th>Env</th><th>Default</th></tr>
+    </thead>
+    <tbody>
+      <tr><td><code>--port &lt;PORT&gt;</code></td><td><code>FRESHBLU_HTTP_PORT</code></td><td><code>3000</code></td></tr>
+      <tr><td><code>--db &lt;URL&gt;</code></td><td><code>DATABASE_URL</code></td><td><code>sqlite:freshblu.db</code></td></tr>
+    </tbody>
+  </table>
+
+  <h3><code>config</code></h3>
+  <p>Show the current configuration (server URL, UUID, redacted token).</p>
+  <CodeBlock code="freshblu config" lang="bash" />
+
   <h2>Configuration File</h2>
-  <p>The CLI looks for a <code>meshblu.json</code> file in the current directory:</p>
+  <p>The CLI looks for a <code>freshblu.json</code> file in the current directory:</p>
   <CodeBlock code={`{
   "server": "http://localhost:3000",
   "uuid": "550e8400-e29b-41d4-a716-446655440000",
