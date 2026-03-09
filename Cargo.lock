@@ -1180,11 +1180,15 @@ name = "freshblu-cli"
 version = "1.0.0"
 dependencies = [
  "anyhow",
+ "axum 0.7.9",
+ "base64 0.21.7",
  "clap",
  "colored",
  "dirs",
  "dotenvy",
  "freshblu-core",
+ "freshblu-server",
+ "freshblu-store",
  "reqwest 0.11.27",
  "serde",
  "serde_json",

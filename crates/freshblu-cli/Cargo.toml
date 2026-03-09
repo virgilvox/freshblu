@@ -14,8 +14,15 @@ categories = ["command-line-utilities"]
 name = "freshblu"
 path = "src/main.rs"
 
+[features]
+default = []
+server = ["dep:freshblu-server", "dep:freshblu-store", "dep:axum"]
+
 [dependencies]
 freshblu-core = { path = "../freshblu-core", version = "1.0.0" }
+freshblu-server = { path = "../freshblu-server", version = "1.0.0", optional = true }
+freshblu-store = { path = "../freshblu-store", version = "1.0.0", optional = true }
+axum = { workspace = true, optional = true }
 tokio = { workspace = true }
 serde = { workspace = true }
 serde_json = { workspace = true }
@@ -29,3 +36,6 @@ tracing-subscriber = { workspace = true }
 dirs = "5"
 toml = "0.8"
 colored = "2"
+
+[dev-dependencies]
+base64 = { workspace = true }

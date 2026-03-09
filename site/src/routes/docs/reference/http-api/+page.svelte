@@ -174,7 +174,7 @@
     <CodeBlock lang="json" code={`{
   "emitterUuid": "emitter-device-uuid",
   "subscriberUuid": "ignored-overridden-by-path",
-  "subscriptionType": "broadcast.sent"
+  "type": "broadcast-sent"
 }`} />
   </div>
 
@@ -199,7 +199,7 @@
     <h3>Request Body (optional)</h3>
     <CodeBlock lang="json" code={`{
   "tag": "mqtt-session",
-  "expiresOn": "2026-12-31T00:00:00Z"
+  "expiresOn": 1735689600
 }`} />
     <h3>Response</h3>
     <CodeBlock lang="json" code={`{

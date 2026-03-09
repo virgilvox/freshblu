@@ -14,7 +14,8 @@ use anyhow::Result;
 use clap::{Parser, Subcommand};
 use colored::Colorize;
 use serde_json::Value;
-
+#[cfg(feature = "server")]
+use std::sync::Arc;
 use std::path::PathBuf;
 
 #[derive(Parser)]
@@ -211,12 +212,78 @@ async fn main() -> Result<()> {
 
     match cli.command {
         Commands::Server { port, db } => {
-            println!("{}", "Starting FreshBlu server...".cyan());
-            std::env::set_var("FRESHBLU_HTTP_PORT", port.to_string());
-            std::env::set_var("DATABASE_URL", &db);
-            // Launch server binary
-            println!("Run: freshblu-server");
-            println!("Or set DATABASE_URL={} FRESHBLU_HTTP_PORT={}", db, port);
+            #[cfg(feature = "server")]
+            {
+                use tracing_subscriber::{layer::SubscriberExt, util::SubscriberInitExt, EnvFilter};
+
+                tracing_subscriber::registry()
+                    .with(
+                        EnvFilter::try_from_default_env()
+                            .unwrap_or_else(|_| "freshblu=info,tower_http=debug".into()),
+                    )
+                    .with(tracing_subscriber::fmt::layer())
+                    .init();
+
+                let store: freshblu_store::DynStore = Arc::new(
+                    freshblu_store::sqlite::SqliteStore::new(&db).await?,
+                );
+
+                let bus: freshblu_server::bus::DynBus =
+                    Arc::new(freshblu_server::local_bus::LocalBus::new());
+
+                let config = freshblu_server::ServerConfig {
+                    http_port: port,
+                    database_url: db.clone(),
+                    ..Default::default()
+                };
+
+                let rate_limiter =
+                    freshblu_server::RateLimiter::new(config.rate_limit, config.rate_window);
+                let webhook_executor = Arc::new(freshblu_server::WebhookExecutor::new(
+                    store.clone(),
+                    bus.clone(),
+                ));
+
+                let state = freshblu_server::AppState {
+                    store,
+                    bus,
+                    config,
+                    rate_limiter,
+                    webhook_executor,
+                };
+
+                let router = freshblu_server::build_router(state);
+                let addr = format!("0.0.0.0:{}", port);
+                let listener = tokio::net::TcpListener::bind(&addr).await?;
+
+                println!(
+                    "{}",
+                    r#"
+ _____              _     ____  _
+|  ___| __ ___  ___| |__ | __ )| |_   _
+| |_ | '__/ _ \/ __| '_ \|  _ \| | | | |
+|  _|| | |  __/\__ \ | | | |_) | | |_| |
+|_|  |_|  \___||___/_| |_|____/|_|\__,_|
+"#
+                    .cyan()
+                );
+                println!("  {} http://{}", "HTTP".green().bold(), addr);
+                println!("  {} ws://localhost:{}/ws", "WS".green().bold(), port);
+                println!("  {} {}", "DB".green().bold(), db);
+                println!();
+
+                axum::serve(listener, router).await?;
+            }
+            #[cfg(not(feature = "server"))]
+            {
+                let _ = (port, db);
+                eprintln!(
+                    "{}: The server feature is not compiled in.",
+                    "error".red().bold()
+                );
+                eprintln!("Rebuild with: cargo install freshblu-cli --features server");
+                std::process::exit(1);
+            }
         }
 
         Commands::Register { data, r#type, save } => {
