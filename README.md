@@ -259,6 +259,41 @@ freshblu status
 freshblu --server http://my-freshblu:3000 whoami
 ```
 
+### Embedded Server
+
+The CLI can also run the full FreshBlu server (no separate binary needed):
+
+```bash
+cargo install freshblu-cli --features server
+freshblu server --port 3000 --db sqlite:freshblu.db
+```
+
+### Node.js CLI
+
+```bash
+npx freshblu-cli status --server https://api.freshblu.org
+npx freshblu-cli register --type sensor
+npx freshblu-cli whoami
+npx freshblu-cli message -d '{"devices":["*"],"payload":{"temp":22}}'
+```
+
+## Python SDK
+
+```bash
+pip install freshblu
+```
+
+```python
+from freshblu import FreshBluHttp
+
+client = FreshBluHttp("https://api.freshblu.org")
+device = client.register({"type": "sensor"})
+print(device["uuid"])
+
+client.set_credentials(device["uuid"], device["token"])
+me = client.whoami()
+```
+
 ## WASM (Browser + Edge)
 
 ```bash

@@ -258,7 +258,7 @@ class FreshBluHttp:
 
     def claim_device(self, uuid: str) -> Dict:
         """Claim an unclaimed device."""
-        return self._request("PUT", f"/claimdevice/{uuid}")
+        return self._request("POST", f"/claimdevice/{uuid}")
 
     def broadcast(self, payload: Dict) -> Dict:
         """Broadcast a message to all subscribers."""

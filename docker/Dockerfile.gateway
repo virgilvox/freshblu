@@ -6,7 +6,7 @@ RUN apk add --no-cache musl-dev pkgconfig openssl-dev openssl-libs-static
 RUN --mount=type=cache,target=/usr/local/cargo/registry \
     --mount=type=cache,target=/tmp/target \
     CARGO_TARGET_DIR=/tmp/target \
-    cargo install freshblu-server@0.1.2 \
+    cargo install freshblu-server@1.0.0 \
       --features "postgres,cache" \
       --no-default-features \
       --root /out

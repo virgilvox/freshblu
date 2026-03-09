@@ -41,6 +41,17 @@ freshblu token revoke <token>
 freshblu status
 ```
 
+## Embedded Server
+
+Build the CLI with the `server` feature to run FreshBlu directly — no separate binary needed:
+
+```bash
+cargo install freshblu-cli --features server
+freshblu server --port 3000 --db sqlite:freshblu.db
+```
+
+This starts the full HTTP/WebSocket server on the specified port using SQLite for local storage.
+
 ## License
 
 MIT OR Apache-2.0
